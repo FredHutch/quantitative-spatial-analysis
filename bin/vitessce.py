@@ -261,7 +261,7 @@ def format_vitessce_cell_types(
                 "name": region,
                 "files": [
                     {
-                        "url": "spatialdata.zarr",
+                        "url": "spatialdata.zarr.zip",
                         "fileType": "image.spatialdata.zarr",
                         "coordinationValues": {
                             "fileUid": "image",
@@ -272,7 +272,7 @@ def format_vitessce_cell_types(
                         }
                     },
                     {
-                        "url": "spatialdata.zarr",
+                        "url": "spatialdata.zarr.zip",
                         "fileType": "obsFeatureMatrix.spatialdata.zarr",
                         "coordinationValues": {
                             "obsType": obs_type
@@ -282,7 +282,7 @@ def format_vitessce_cell_types(
                         }
                     },
                     {
-                        "url": "spatialdata.zarr",
+                        "url": "spatialdata.zarr.zip",
                         "fileType": "obsSpots.spatialdata.zarr",
                         "coordinationValues": {
                             "obsType": obs_type
@@ -293,7 +293,7 @@ def format_vitessce_cell_types(
                         }
                     },
                     {
-                        "url": "spatialdata.zarr",
+                        "url": "spatialdata.zarr.zip",
                         "fileType": "obsSets.spatialdata.zarr",
                         "coordinationValues": {
                             "obsType": obs_type
