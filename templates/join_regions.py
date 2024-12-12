@@ -12,4 +12,4 @@ spatial = ad.concat(
     uns_merge="same"
 )
 
-spatial.write("spatial.h5ad")
+spatial.write("spatialdata.h5ad")

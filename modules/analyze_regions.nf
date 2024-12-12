@@ -1,12 +1,13 @@
 include { extract_regions_xenium } from './extract_regions'
-include { publish } from './publish'
+include { summarize } from './summarize'
 
 process cluster_points {
     input:
-    path "spatial.h5ad"
+    path "spatialdata.h5ad"
 
     output:
-    path "clustered.h5ad"
+    path "clustered.h5ad", emit: anndata
+    path "logs/*", emit: logs
 
     script:
     template "cluster_points.py"
@@ -17,10 +18,28 @@ process neighborhood_analysis {
     path "input.h5ad"
 
     output:
-    path "spatial.h5ad"
+    path "spatialdata.h5ad", emit: anndata
+    path "logs/*", emit: logs
 
     script:
     template "neighborhood_analysis.py"
+}
+
+process vitessce {
+    input:
+    path "spatialdata.h5ad"
+    path "spatialdata/spatialdata.*.zarr.zip"
+
+    output:
+    path "logs/*", emit: logs
+    path "regions/*/*", emit: zarr
+
+    script:
+    """#!/bin/bash
+set -e
+vitessce.py
+"""
+
 }
 
 workflow analyze_regions {
@@ -58,12 +77,31 @@ workflow analyze_regions {
     extract_regions_xenium(source_datasets.xenium)
 
     // Run clustering on the extracted points
-    cluster_points(extract_regions_xenium.out)
+    cluster_points(extract_regions_xenium.out.anndata)
 
     // Run neighborhood analysis on the clustered points
-    neighborhood_analysis(cluster_points.out)
+    neighborhood_analysis(cluster_points.out.anndata)
 
-    // Make plots and publish the results
-    publish(neighborhood_analysis.out)
+    // Make plots and summarize the results
+    summarize(neighborhood_analysis.out.anndata)
+
+    // Format a vitessce display for each region using the cluster and neighborhood annotations
+    vitessce(
+        neighborhood_analysis.out.anndata.toSortedList(),
+        extract_regions_xenium.out.spatialdata
+            .map { it[1] }
+            .toSortedList()
+    )
+
+    emit:
+    region_defs = extract_regions_xenium.out.region_defs
+    spatial = neighborhood_analysis.out.anndata
+    plots = summarize.out.plots
+    summary = summarize.out.summary
+    zarr = vitessce.out.zarr
+    logs = summarize.out.logs
+        .mix(cluster_points.out.logs)
+        .mix(neighborhood_analysis.out.logs)
+        .mix(vitessce.out.logs)
 
 }

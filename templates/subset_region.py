@@ -1,19 +1,18 @@
 #!/usr/bin/env python3
 
+from typing import Any, Dict
 import anndata as ad
 import json
 from shapely import Polygon, Point
 
 
-def extract_region(spatial: ad.AnnData):
-    with open("region.json") as handle:
-        region = json.load(handle)
+def extract_region(spatial: ad.AnnData, region_def: Dict[str, Any]) -> ad.AnnData:
 
     # Set up a vector of False values for each point in the spatial dataset
     mask = [False] * spatial.shape[0]
 
     # Get the coordinates for the outline of each sub-region
-    for outline in region["outline"]:
+    for outline in region_def["outline"]:
         x_coords = outline["x"]
         y_coords = outline["y"]
 
@@ -41,13 +40,21 @@ def extract_region(spatial: ad.AnnData):
 def main():
 
     # Read in the spatial dataset
-    spatial = ad.read_h5ad("spatial.h5ad")
+    spatial = ad.read_h5ad("spatialdata.h5ad")
+
+    # Read in the region definition
+    with open("region.json") as handle:
+        region_def = json.load(handle)
 
     # Subset to the points within the region
-    region = extract_region(spatial)
+    region = extract_region(spatial, region_def)
 
     # Save to a new file
     region.write("region.h5ad")
+
+    # Save the region definition
+    with open("${region_id}.json", "w") as handle:
+        json.dump(region_def, handle)
 
 
 if __name__ == "__main__":

@@ -5,11 +5,17 @@ from sklearn.neighbors import NearestNeighbors
 from sklearn.cluster import MiniBatchKMeans
 import logging
 import pandas as pd
+from pathlib import Path
+
+Path("logs").mkdir(exist_ok=True)
 
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s',
-    handlers=[logging.StreamHandler()]
+    handlers=[
+        logging.StreamHandler(),
+        logging.FileHandler("logs/neighborhood_analysis.txt")
+    ]
 )
 logger = logging.getLogger(__name__)
 
@@ -69,7 +75,7 @@ def main():
 
     # Save the results
     logger.info("Writing the results")
-    adata.write("spatial.h5ad")
+    adata.write("spatialdata.h5ad")
     logger.info("Done")
 
 
