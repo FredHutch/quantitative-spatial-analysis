@@ -96,6 +96,11 @@ def extract_regions(adata: ad.AnnData, sdata: SpatialData):
         # Subset the spatial data to the points in the region
         logger.info("Subsetting the spatial data")
         region_sdata.tables['table'] = region_sdata.tables['table'][region_points]
+        # Copy over the cluser and neighborhood annotations
+        for key in ["cluster", "neighborhood"]:
+            if key not in adata.obs.columns:
+                raise ValueError(f"Missing column {key} in the annotated dataset")
+            region_sdata.tables["table"].obs[key] = adata.obs.reindex(index=region_points)[key]
         # Find the most highly variable gene
         logger.info("Finding the most highly variable gene")
         init_gene = region_sdata.tables['table'].to_df().var(axis=0).idxmax()
