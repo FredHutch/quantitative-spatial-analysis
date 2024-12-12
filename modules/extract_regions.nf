@@ -18,7 +18,7 @@ process subset_region {
 
     output:
     path "region.h5ad", emit: anndata
-    path "*.json", emit: region_json
+    path "*/region.json", emit: region_json
 
     script:
     template "subset_region.py"
