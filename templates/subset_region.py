@@ -54,9 +54,9 @@ def main():
     region.write("region.h5ad")
 
     # Save the region definition
-    region_def = Path("${region_id}") / "region.json"
-    region_def.parent.mkdir(exist_ok=True, parents=True)
-    with open(region_def, "w") as handle:
+    region_json = Path("${region_id}") / "region.json"
+    region_json.parent.mkdir(exist_ok=True, parents=True)
+    with open(region_json, "w") as handle:
         json.dump(region_def, handle)
 
 
