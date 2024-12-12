@@ -152,7 +152,7 @@ def save_region(points: SpatialPoints, region_id: str, outline: dict):
             project.upload_dataset(
                 name=region_id,
                 description=description,
-                process="custom_dataset",
+                process="spatial_region_json",
                 upload_folder=tmp
             )
         except Exception as e:
@@ -170,7 +170,8 @@ def parse_region(dataset: DataPortalDataset) -> Optional[SpatialRegion]:
     """
     region_json = dataset.list_files().filter_by_pattern("data/region.json")
     if len(region_json) == 0:
-        return None
+        raise ValueError(f"No region.json file found in {dataset.name}")
+
     region = json.loads(region_json[0].read())
 
     try:

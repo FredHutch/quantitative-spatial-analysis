@@ -88,14 +88,14 @@ class SpatialDataCatalog:
         for dataset in datasets:
 
             # Parse region datasets in a particular way
-            if dataset.process_id == "custom_dataset":
+            if dataset.process_id == "spatial_region_json":
                 region = parse_region(dataset)
-                if region is not None:
-                    self.datasets[dataset.id] = dataset
-                    self.dataset_types[dataset.id] = "Region"
-                    for ingest_id in _get_ingest_ids(region.dataset.cirro_source.dataset):
-                        self.groups[ingest_id].append(dataset.id)
-                    self.regions[dataset.id] = region
+
+                self.datasets[dataset.id] = dataset
+                self.dataset_types[dataset.id] = "Region"
+                for ingest_id in _get_ingest_ids(region.dataset.cirro_source.dataset):
+                    self.groups[ingest_id].append(dataset.id)
+                self.regions[dataset.id] = region
 
             # Skip datasets that are not of the expected types
             elif dataset.process_id not in self.filter_types:
