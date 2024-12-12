@@ -11,6 +11,8 @@ process read_xenium {
 }
 
 process subset_region {
+    publishDir "${params.outdir}/regions", mode: 'copy', overwrite: true, pattern: "*.json"
+
     input:
     tuple path("spatialdata.h5ad"), val(region_id), path("region.json")
 

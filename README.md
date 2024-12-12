@@ -92,6 +92,7 @@ It is a Nextflow workflow which can be used following the
 - `resolution`: The leiden clustering resolution used for determining cell types
 - `n_neighbors`: The number of neighbors for each individual cell to consider when performing neighborhood anlaysis
 - `n_neighborhoods`: The number of neighborhoods to return (provided as the `k` for k-means clustering)
+- `outdir`: The base path for all output files. Note that this cannot have a leading or trailing slash (`/`) based on Nextflow publishing implementation.
 
 ### Outputs
 

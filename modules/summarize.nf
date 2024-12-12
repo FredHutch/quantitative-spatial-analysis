@@ -1,4 +1,6 @@
 process make_plots {
+    publishDir "${params.outdir}", mode: 'copy', overwrite: true
+
     input:
     path "spatialdata.h5ad"
     path "counts.csv"
@@ -13,6 +15,8 @@ process make_plots {
 }
 
 process summary_stats {
+    publishDir "${params.outdir}", mode: 'copy', overwrite: true
+
     input:
     path "spatialdata.h5ad"
 
