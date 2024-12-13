@@ -108,7 +108,7 @@ def extract_regions(adata: ad.AnnData, sdata: SpatialData):
         logger.info("Subsetting the spatial coordinates")
         region_sdata.shapes["centroids"] = region_sdata.shapes["centroids"].loc[region_points]
         # Write out the subsetted spatial data
-        zarr_path = f"regions/{region}/spatialdata.zarr"
+        zarr_path = f"regions/{region}/{region.replace(" ", "_").lower()}.zarr"
         logger.info(f"Writing region data to {zarr_path}")
         # If the zarr store already exists, remove it
         if Path(zarr_path).exists():
@@ -146,7 +146,7 @@ def format_zarr_vitessce(zarr_path):
         zarr_path,
         "zip",
         root_dir=str(Path(zarr_path).parent),
-        base_dir="spatialdata.zarr"
+        base_dir=zarr_path.split("/")[-1]
     )
 
     # Remove the spatialdata.zarr folder
@@ -256,6 +256,8 @@ def format_vitessce_cell_types(
     Format a Vitessce configuration for the cell types in a region, similar to the Xenium viewer.
     """
 
+    zarr_path = region.replace(" ", "_").lower() + ".zarr.zip"
+
     return {
         "version": schema_version,
         "name": f"{region} - Cell Types",
@@ -266,7 +268,7 @@ def format_vitessce_cell_types(
                 "name": region,
                 "files": [
                     {
-                        "url": "spatialdata.zarr.zip",
+                        "url": zarr_path,
                         "fileType": "image.spatialdata.zarr",
                         "coordinationValues": {
                             "fileUid": "image",
@@ -277,7 +279,7 @@ def format_vitessce_cell_types(
                         }
                     },
                     {
-                        "url": "spatialdata.zarr.zip",
+                        "url": zarr_path,
                         "fileType": "obsFeatureMatrix.spatialdata.zarr",
                         "coordinationValues": {
                             "obsType": obs_type
@@ -287,7 +289,7 @@ def format_vitessce_cell_types(
                         }
                     },
                     {
-                        "url": "spatialdata.zarr.zip",
+                        "url": zarr_path,
                         "fileType": "obsSpots.spatialdata.zarr",
                         "coordinationValues": {
                             "obsType": obs_type
@@ -298,7 +300,7 @@ def format_vitessce_cell_types(
                         }
                     },
                     {
-                        "url": "spatialdata.zarr.zip",
+                        "url": zarr_path,
                         "fileType": "obsSets.spatialdata.zarr",
                         "coordinationValues": {
                             "obsType": obs_type
