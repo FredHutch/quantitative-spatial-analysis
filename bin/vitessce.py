@@ -241,6 +241,7 @@ def write_vitessce_config(region: str, vt_kwargs: Dict[str, Any]):
             format_vitessce_cell_types(
                 region,
                 obs_groups="cluster",
+                title_suffix="Cell Types",
                 **vt_kwargs
             )
         ),
@@ -249,6 +250,7 @@ def write_vitessce_config(region: str, vt_kwargs: Dict[str, Any]):
             format_vitessce_cell_types(
                 region,
                 obs_groups="neighborhood",
+                title_suffix="Neighborhoods",
                 **vt_kwargs
             )
         )
@@ -265,7 +267,8 @@ def format_vitessce_cell_types(
     obs_groups = "cluster",
     init_gene = "CD45",
     radius = 20,
-    description = ""
+    description = "",
+    title_suffix = "Cell Types"
 ):
     """
     Format a Vitessce configuration for the cell types in a region, similar to the Xenium viewer.
@@ -275,7 +278,7 @@ def format_vitessce_cell_types(
 
     return {
         "version": schema_version,
-        "name": f"{region} - Cell Types",
+        "name": f"{region} - {title_suffix}",
         "description": description,
         "datasets": [
             {
