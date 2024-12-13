@@ -7,7 +7,7 @@ process make_plots {
 
     output:
     path "regions/*", emit: region_plots
-    path "combined/*", emit: combined_plots
+    path "plots/*", emit: combined_plots
     path "logs/*", emit: logs
 
     script:
@@ -15,7 +15,8 @@ process make_plots {
 }
 
 process summary_stats {
-    publishDir "${params.outdir}", mode: 'copy', overwrite: true
+    publishDir "${params.outdir}/combined", mode: 'copy', overwrite: true, pattern: "*.csv"
+    publishDir "${params.outdir}", mode: 'copy', overwrite: true, pattern: "**.txt"
 
     input:
     path "spatialdata.h5ad"

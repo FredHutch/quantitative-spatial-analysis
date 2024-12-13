@@ -9,6 +9,7 @@ from pathlib import Path
 
 Path("logs").mkdir(exist_ok=True)
 Path("combined").mkdir(exist_ok=True)
+Path("plots").mkdir(exist_ok=True)
 
 logging.basicConfig(
     level=logging.INFO,
@@ -66,6 +67,8 @@ def plot_spatial():
             ax.set_xlabel("")
             ax.set_ylabel("")
             ax.set_title(title)
+            # Put the legend outside the plot
+            ax.legend(title=title, bbox_to_anchor=(1, 1))
 
         plt.suptitle(f"Region: {region}")
         plt.tight_layout()
@@ -106,8 +109,8 @@ def plot_counts():
     plt.ylabel("Number of Cells")
     plt.title("Region Size")
     plt.tight_layout()
-    plt.savefig("combined/region_counts.png")
-    plt.savefig("combined/region_counts.pdf")
+    plt.savefig("plots/region_counts.png")
+    plt.savefig("plots/region_counts.pdf")
     plt.close()
 
     # Plot a stacked bar graph with the proportion of cells in each neighborhood in each region
@@ -138,8 +141,8 @@ def plot_counts():
     plt.ylabel("Proportion of Cells")
     plt.title("Neighborhood Composition Across Regions")
     plt.tight_layout()
-    plt.savefig("combined/neighborhood_comp_across_regions.png")
-    plt.savefig("combined/neighborhood_comp_across_regions.pdf")
+    plt.savefig("plots/neighborhood_comp_across_regions.png")
+    plt.savefig("plots/neighborhood_comp_across_regions.pdf")
     plt.close()
 
     # Make a heatmap with the proportion of cell types in each neighborhood
@@ -162,8 +165,8 @@ def plot_counts():
     g.ax_heatmap.set_xlabel("Cell Cluster")
     g.ax_heatmap.set_ylabel("Neighborhood")
     plt.tight_layout()
-    plt.savefig("combined/cell_clusters_across_neighborhoods.png")
-    plt.savefig("combined/cell_clusters_across_neighborhoods.pdf")
+    plt.savefig("plots/cell_clusters_across_neighborhoods.png")
+    plt.savefig("plots/cell_clusters_across_neighborhoods.pdf")
     plt.close()
 
 

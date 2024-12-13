@@ -2,7 +2,7 @@ include { extract_regions_xenium } from './extract_regions'
 include { summarize } from './summarize'
 
 process cluster_points {
-    publishDir "${params.outdir}/logs", mode: 'copy', overwrite: true, pattern: "*.txt"
+    publishDir "${params.outdir}", mode: 'copy', overwrite: true, pattern: "**.txt"
 
     input:
     path "spatialdata.h5ad"
@@ -17,7 +17,7 @@ process cluster_points {
 
 process neighborhood_analysis {
     publishDir "${params.outdir}/combined", mode: 'copy', overwrite: true, pattern: "*.h5ad"
-    publishDir "${params.outdir}", mode: 'copy', overwrite: true, pattern: "*.txt"
+    publishDir "${params.outdir}", mode: 'copy', overwrite: true, pattern: "**.txt"
 
     input:
     path "input.h5ad"
@@ -39,7 +39,7 @@ process vitessce {
 
     output:
     path "logs/*", emit: logs
-    path "regions/*/*", emit: zarr
+    path "regions/**", emit: zarr
 
     script:
     """#!/bin/bash

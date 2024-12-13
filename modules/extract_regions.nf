@@ -1,10 +1,12 @@
 process read_xenium {
+    publishDir "${params.outdir}", mode: 'copy', overwrite: true, pattern: "**.txt"
     input:
     tuple val(uri), path("xenium")
 
     output:
     tuple val(uri), path("spatialdata.h5ad"), emit: anndata
     tuple val(uri), path("spatialdata.zarr.zip"), emit: spatialdata
+    path "logs/*", emit: logs
 
     script:
     template "read_xenium.py"
