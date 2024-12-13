@@ -236,8 +236,22 @@ def write_vitessce_config(region: str, vt_kwargs: Dict[str, Any]):
     #  - show cell measurements along with the cell type annotations (similar to the Xenium viewer)
     #  - show the neighborhoods alongside the cell type annotations
     for prefix, vt_config in [
-        ("cell_types", format_vitessce_cell_types(region, **vt_kwargs)),
-        ("neighborhoods", format_vitessce_cell_types(region, **vt_kwargs))
+        (
+            "cell_types",
+            format_vitessce_cell_types(
+                region,
+                obs_groups="cluster",
+                **vt_kwargs
+            )
+        ),
+        (
+            "neighborhoods",
+            format_vitessce_cell_types(
+                region,
+                obs_groups="neighborhood",
+                **vt_kwargs
+            )
+        )
     ]:
         # Save the configuration to JSON
         with open(f"regions/{region}/{prefix}.vt.json", "w") as f:
@@ -248,8 +262,9 @@ def format_vitessce_cell_types(
     region: str,
     schema_version = "1.0.16",
     obs_type = "cell",
+    obs_groups = "cluster",
     init_gene = "CD45",
-    radius = 10,
+    radius = 20,
     description = ""
 ):
     """
@@ -309,7 +324,7 @@ def format_vitessce_cell_types(
                             "obsSets": [
                                 {
                                     "name": "Cell Type",
-                                    "path": f"tables/table/obs/cluster"
+                                    "path": f"tables/table/obs/{obs_groups}"
                                 }
                             ]
                         }
