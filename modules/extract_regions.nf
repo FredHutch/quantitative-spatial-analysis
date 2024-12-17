@@ -67,8 +67,13 @@ workflow extract_regions_xenium {
         .map { [it[1], it[2][0], it[2][1]] }
         | subset_region
 
+    subset_region.out
+        .anndata
+        .ifEmpty { error "No regions were found" }
+        .set { all_regions }
+
     // Merge the regions into a single object
-    join_regions(subset_region.out.anndata.toSortedList())
+    join_regions(all_regions.toSortedList())
 
     emit:
     region_defs = subset_region.out.region_json
