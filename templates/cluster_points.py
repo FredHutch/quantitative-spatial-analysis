@@ -44,7 +44,7 @@ def cluster_xenium(adata: AnnData):
 def cluster_stardist(adata: AnnData):
 
     logger.info("Running PCA")
-    sc.pp.pca(adata, n_comps=min(adata.n_vars, adata.n_obs, 50))
+    sc.pp.pca(adata, n_comps=min(adata.n_vars, adata.n_obs, 51)-1)
     logger.info("Finding neighbors")
     sc.pp.neighbors(adata, n_neighbors=10)
 

@@ -1,4 +1,4 @@
-include { extract_regions_xenium } from './extract_regions'
+include { extract_regions } from './extract_regions'
 include { summarize } from './summarize'
 
 process cluster_points {
@@ -81,10 +81,10 @@ workflow analyze_regions {
     source_datasets.other.map { error "Unsupported dataset type: ${it[1]}" }
 
     // Extract the points encoded by each region
-    extract_regions_xenium(source_datasets.xenium)
+    extract_regions(source_datasets.xenium, source_datasets.stardist)
 
     // Run clustering on the extracted points
-    cluster_points(extract_regions_xenium.out.anndata)
+    cluster_points(extract_regions.out.anndata)
 
     // Run neighborhood analysis on the clustered points
     neighborhood_analysis(cluster_points.out.anndata)
@@ -95,13 +95,13 @@ workflow analyze_regions {
     // Format a vitessce display for each region using the cluster and neighborhood annotations
     vitessce(
         neighborhood_analysis.out.anndata.toSortedList(),
-        extract_regions_xenium.out.spatialdata
+        extract_regions.out.spatialdata
             .map { it[1] }
             .toSortedList()
     )
 
     emit:
-    region_defs = extract_regions_xenium.out.region_defs
+    region_defs = extract_regions.out.region_defs
     spatial = neighborhood_analysis.out.anndata
     plots = summarize.out.plots
     summary = summarize.out.summary
