@@ -2,7 +2,7 @@ from pathlib import Path
 from time import sleep
 
 from cirro import DataPortalProject
-from app.cirro import list_datasets, parse_region
+from app.cirro import get_project, list_datasets, parse_region
 from app.models.points import SpatialPoints, SpatialDataset, CirroDataset
 
 from functools import lru_cache
@@ -27,7 +27,7 @@ def _get_ingest_ids(
     dataset: Union[DataPortalDataset, str]
 ) -> Generator[str, str, str]:
     if isinstance(dataset, str):
-        project: DataPortalProject = st.session_state["project"]
+        project = get_project()
         dataset = project.get_dataset_by_id(dataset)
     if dataset.process.executor == "INGEST":
         yield dataset.id
@@ -87,30 +87,7 @@ class SpatialDataCatalog:
         # Loop over every dataset
         for dataset in datasets:
 
-            # Parse region datasets in a particular way
-            if dataset.process_id == "spatial_region_json":
-                region = parse_region(dataset)
-
-                self.datasets[dataset.id] = dataset
-                self.dataset_types[dataset.id] = "Region"
-                for ingest_id in _get_ingest_ids(region.dataset.cirro_source.dataset):
-                    self.groups[ingest_id].append(dataset.id)
-                self.regions[dataset.id] = region
-
-            # Skip datasets that are not of the expected types
-            elif dataset.process_id not in self.filter_types:
-                pass
-
-            # Skip datasets that have failed analysis
-            elif dataset.status == "FAILED":
-                pass
-
-            else:
-
-                self.datasets[dataset.id] = dataset
-                self.dataset_types[dataset.id] = dataset.process.name
-                for ingest_id in _get_ingest_ids(dataset):
-                    self.groups[ingest_id].append(dataset.id)
+            self.add_dataset(dataset)
 
         # Make a table of the datasets
         self. df = pd.DataFrame([
@@ -132,6 +109,33 @@ class SpatialDataCatalog:
         if self.df.shape[0]:
             self.df.sort_values("Created", ascending=False, inplace=True)
 
+    def add_dataset(self, dataset: DataPortalDataset):
+
+        # Parse region datasets in a particular way
+        if dataset.process_id == "spatial_region_json":
+            region = parse_region(dataset)
+
+            self.datasets[dataset.id] = dataset
+            self.dataset_types[dataset.id] = "Region"
+            for ingest_id in _get_ingest_ids(region.dataset.cirro_source.dataset):
+                self.groups[ingest_id].append(dataset.id)
+            self.regions[dataset.id] = region
+
+        # Skip datasets that are not of the expected types
+        elif dataset.process_id not in self.filter_types:
+            return
+
+        # Skip datasets that have failed analysis
+        elif dataset.status == "FAILED":
+            return
+
+        else:
+
+            self.datasets[dataset.id] = dataset
+            self.dataset_types[dataset.id] = dataset.process.name
+            for ingest_id in _get_ingest_ids(dataset):
+                self.groups[ingest_id].append(dataset.id)
+
     @lru_cache
     def process_id(_self, dataset_id):
         if dataset_id in _self.regions:
@@ -139,7 +143,7 @@ class SpatialDataCatalog:
         else:
             return _self.datasets[dataset_id].process_id
 
-    def get_points(self, dataset_id: str):
+    def get_points(self, dataset_id: str) -> SpatialPoints:
         """
         Get the spatial coordinates of the points in the dataset
         """
@@ -155,7 +159,7 @@ class SpatialDataCatalog:
         ]:
             return self.get_points_stardist(dataset_id)
         
-    def get_points_xenium(self, dataset_id: str):
+    def get_points_xenium(self, dataset_id: str) -> SpatialPoints:
 
         # Get the Dataset object
         ds = self.datasets[dataset_id]
@@ -203,6 +207,39 @@ class SpatialDataCatalog:
                 )
             )
         )
+    
+    def get_points_stardist(self, dataset_id: str) -> SpatialPoints:
+
+        # Get the Dataset object
+        ds = self.datasets[dataset_id]
+
+        # Get the spatial coordinates
+        coords = (
+            ds
+            .list_files()
+            .get_by_name("data/cell_measurements/spatial.csv")
+            .read_csv(index_col=0)
+        )
+        # Construct the URI for the folder
+        folder = "data"
+        folder_uri = str(Path(ds._get_detail().s3) / folder)
+
+        return SpatialPoints(
+            coords=coords,
+            xcol=coords.columns.values[0],
+            ycol=coords.columns.values[1],
+            meta_cols=[],
+            dataset=SpatialDataset(
+                type="stardist",
+                uri=folder_uri,
+                cirro_source=CirroDataset(
+                    domain=st.session_state["domain"],
+                    project=ds.project_id,
+                    dataset=dataset_id,
+                    path=folder
+                )
+            )
+        )
 
     @lru_cache
     def read_parquet(_self, dataset_id: str, file_name: str):
@@ -222,8 +259,14 @@ def get_catalog(
     refresh_time: float,
     selected_project: str
 ) -> SpatialDataCatalog:
-    logger.info("--------------------------------------------")
+    logger.info("----------------------------------------------")
     logger.info(f"Refreshing the data catalog ({refresh_time})")
     logger.info(f"Selected project: {selected_project}")
-    logger.info("--------------------------------------------")
-    return SpatialDataCatalog()
+    catalog = SpatialDataCatalog()
+    if catalog.df is None:
+        n = 0
+    else:
+        n = catalog.df.shape[0]
+    logger.info(f"Project has {n} datasets")
+    logger.info("----------------------------------------------")
+    return catalog

@@ -1,5 +1,6 @@
 from dataclasses import asdict
 from app.models.points import CirroDataset, SpatialDataset, SpatialPoints, SpatialRegion
+from app.streamlit import get_query_param, set_query_param, clear_query_param
 import json
 from tempfile import TemporaryDirectory
 from time import sleep
@@ -8,6 +9,7 @@ from cirro import DataPortal, DataPortalProject
 from cirro import DataPortalDataset
 import streamlit as st
 import logging
+import pandas as pd
 
 logging.basicConfig(
     level=logging.INFO,
@@ -17,13 +19,61 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
+def show_menu(
+    query_key: str,
+    df: pd.DataFrame,
+    column_order: List[str],
+    column_config: dict,
+    header_text: str,
+    clear_params=[]
+):
+    st.write(header_text)
+    selection = st.data_editor(
+        df.assign(selected=False),
+        use_container_width=True,
+        hide_index=True,
+        column_order=["selected"] + column_order,
+        column_config={
+            "selected": st.column_config.CheckboxColumn(label="☑️"),
+            **column_config
+        }
+    )
+    # If a dataset was selected
+    if len(selection.query("selected")["id"].values) > 0:
+        # Get the selected id
+        selected_id = selection.query("selected")["id"].values[0]
+
+        # Set the query parameter
+        st.query_params[query_key] = selected_id
+        with st.spinner("Loading..."):
+            set_query_param(query_key, selected_id)
+
+        for param in clear_params:
+            clear_query_param(param)
+
+        st.rerun()
+
+
+def get_project() -> Optional[DataPortalProject]:
+    """
+    If a project ID is present in the session state, return the project.
+    """
+    project_id = get_query_param("project")
+    if project_id is None:
+        return
+    portal = st.session_state.get("data_portal")
+    if portal is None:
+        return
+    return portal.get_project_by_id(project_id)
+
+
 def list_datasets() -> Optional[List[DataPortalDataset]]:
     """
     Return the list of datasets which can be loaded from Cirro.
     """
 
     # Get the project selected by the user
-    project: Optional[DataPortalProject] = st.session_state.get("project")
+    project: Optional[DataPortalProject] = get_project()
 
     # If no project was selected, or we are not logged in, stop here
     if not project:
@@ -54,43 +104,45 @@ def select_project() -> Optional[DataPortalProject]:
         # Report it to the user and stop here
         st.exception(e)
         return
-
-    # Sort the projects by name
-    projects.sort(key=lambda p: p.name)
     
-    # Give the user the option to select a project
-    project = st.sidebar.selectbox(
-        "Select data collection (or project)",
-        [p.name for p in projects],
-        placeholder="< select a project >",
-        index=None
+    # Make a DataFrame with the project info
+    project_df = pd.DataFrame(
+        [
+            {
+                "name": p.name,
+                "id": p.id,
+                "description": p.description
+            }
+            for p in projects
+        ]
+    )
+    # Sort the projects by name
+    project_df.sort_values("name", inplace=True)
+
+    # Show a table with the projects that the user can select
+    show_menu(
+        query_key="project",
+        df=project_df,
+        column_order=["name", "description", "id"],
+        column_config={
+            "description": {"maxWidth": 300}
+        },
+        header_text="Select a project"
     )
 
-    # If no project was selected, stop here
-    if project is None:
-        return
-
-    # Return the project object
-    for p in projects:
-        if p.name == project:
-
-            # Return the project object
-            return p
-
-    raise ValueError(f"Project '{project}' not found")
 
 
 def cirro_dataset_link(dataset_id: str) -> str:
     """Return the URL of the dataset in Cirro."""
 
     # Get the Cirro domain
-    domain = st.session_state.get("domain")
+    domain = get_query_param("domain")
     # If we are not logged in, stop here
     if not domain:
         raise ValueError("Not logged in")
 
     # Get the project selected by the user
-    project: Optional[DataPortalProject] = st.session_state.get("project")
+    project = get_project()
 
     if project is None:
         raise ValueError("No project selected")
@@ -103,7 +155,7 @@ def cirro_analysis_link(dataset_id: str, analysis_id: str) -> str:
     return f"{cirro_dataset_link(dataset_id)}/pipeline/{analysis_id}"
 
 
-def save_region(points: SpatialPoints, region_id: str, outline: dict):
+def save_region(points: SpatialPoints, region_id: str, outline: dict) -> DataPortalDataset:
     """
     Save a region to Cirro.
     """
@@ -115,7 +167,7 @@ def save_region(points: SpatialPoints, region_id: str, outline: dict):
         raise ValueError("Not logged in")
     
     # Get the project selected by the user
-    project: Optional[DataPortalProject] = st.session_state.get("project")
+    project = get_project()
     if project is None:
         raise ValueError("No project selected")
 
@@ -149,7 +201,7 @@ def save_region(points: SpatialPoints, region_id: str, outline: dict):
 
         # Upload the file to Cirro
         try:
-            project.upload_dataset(
+            ds = project.upload_dataset(
                 name=region_id,
                 description=description,
                 process="spatial_region_json",
@@ -162,6 +214,16 @@ def save_region(points: SpatialPoints, region_id: str, outline: dict):
 
     st.write(f"Saved region: {region_id}")
     logger.info(f"Saved region: {region_id}")
+
+    # Get the dataset object
+    with st.spinner("Confirming upload..."):
+        sleep(3)
+        ds = project.get_dataset_by_id(ds.id)
+
+    # Make sure that the region.json is in the list of files
+    if not ds.list_files().filter_by_pattern("data/region.json"):
+        raise ValueError("Failed to save region")
+    return ds
 
 
 def parse_region(dataset: DataPortalDataset) -> Optional[SpatialRegion]:

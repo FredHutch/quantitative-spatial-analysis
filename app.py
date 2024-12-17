@@ -1,7 +1,6 @@
 #!/usr/bin/env streamlit run
 from time import time
 import streamlit as st
-from app.cirro import select_project
 
 
 def run():
@@ -26,9 +25,6 @@ def run():
     if st.session_state.get("refresh_time") is None:
         st.session_state["refresh_time"] = time()
     
-    # Let the user select which project to load data from
-    st.session_state["project"] = select_project()
-
     if st.session_state.get("data_portal") is not None:
 
         # Refresh only when the user clicks the button

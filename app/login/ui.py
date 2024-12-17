@@ -12,6 +12,7 @@ except ImportError:
     from streamlit.runtime.scriptrunner import script_run_context
 from threading import Thread
 from time import sleep
+from app.streamlit import get_query_param, set_query_param
 
 
 def setup_data_portal():
@@ -24,7 +25,7 @@ def setup_data_portal():
 
     # The domain may be passed in as a query parameter, or it may be stored in the session state
     domain = "dev.cirro.bio" # FIXME
-    # domain = st.query_params.get("domain", st.session_state.get("domain")) # FIXME
+    # domain = get_query_param("domain") # FIXME
     if domain is None:
         tenant_dict = {
             tenant['displayName']: tenant['domain']
@@ -42,7 +43,7 @@ def setup_data_portal():
         domain = tenant_dict.get(tenant)
 
     if domain:
-        st.session_state["domain"] = domain
+        set_query_param("domain", domain)
         _cirro_login(domain, st.empty())
 
 
