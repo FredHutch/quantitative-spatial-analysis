@@ -78,12 +78,21 @@ def extract_regions(adata: ad.AnnData, sdata: SpatialData):
     write out the subsetted spatial dataset for each region in the annotated dataset.
     """
 
+    # LEGACY COMPATIBILITY
+    # If the spatial data has index values of "0", "1", "2", and also contains a column "object_id",
+    # then set the "object_id" column to be the index
+    if sdata.tables['table'].obs.index[:3].isin(["0", "1", "2"]).all() and "object_id" in sdata.tables['table'].obs.columns:
+        logger.info("Setting the object_id column as the index")
+        sdata.tables['table'].obs.set_index("object_id", inplace=True, drop=False)
+
     # Subset the table of the spatial data to the points within the annotated dataset
     overlap = sdata.tables['table'].obs_names.intersection(adata.obs_names)
 
     if len(overlap) == 0:
         logger.info(f"No overlap of points with the annotated dataset")
         return
+    
+    logger.info(f"Found {len(overlap):,} points in the annotated dataset")
     
     # Iterate over each region
     for region in adata.obs.reindex(index=overlap)["region"].unique():
