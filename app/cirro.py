@@ -3,7 +3,7 @@ from app.models.points import CirroDataset, SpatialDataset, SpatialPoints, Spati
 from app.streamlit import get_query_param, set_query_param, clear_query_param
 import json
 from tempfile import TemporaryDirectory
-from time import sleep
+from time import sleep, time
 from typing import Optional, List
 from cirro import DataPortal, DataPortalProject
 from cirro import DataPortalDataset
@@ -155,7 +155,13 @@ def cirro_analysis_link(dataset_id: str, analysis_id: str) -> str:
     return f"{cirro_dataset_link(dataset_id)}/pipeline/{analysis_id}"
 
 
-def save_region(points: SpatialPoints, region_id: str, outline: dict) -> DataPortalDataset:
+def save_region(
+    points: SpatialPoints,
+    region_id: str,
+    outline: dict,
+    confirm_upload_timeout = 5,
+    confirm_upload_interval = 0.5
+) -> DataPortalDataset:
     """
     Save a region to Cirro.
     """
@@ -217,12 +223,19 @@ def save_region(points: SpatialPoints, region_id: str, outline: dict) -> DataPor
 
     # Get the dataset object
     with st.spinner("Confirming upload..."):
-        sleep(3)
-        ds = project.get_dataset_by_id(ds.id)
+        start_time = time()
+        while (time() - start_time) <= confirm_upload_timeout:
+            ds = project.get_dataset_by_id(ds.id)
 
-    # Make sure that the region.json is in the list of files
-    if not ds.list_files().filter_by_pattern("data/region.json"):
-        raise ValueError("Failed to save region")
+            # Make sure that the region.json is in the list of files
+            if ds.list_files().filter_by_pattern("data/region.json"):
+                break
+
+            sleep(confirm_upload_interval)
+
+        if not ds.list_files().filter_by_pattern("data/region.json"):
+            raise ValueError("Failed to save region")
+
     return ds
 
 

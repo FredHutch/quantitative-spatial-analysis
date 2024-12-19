@@ -233,20 +233,20 @@ def pick_region():
     # Get the size of the plot to show
     width, height = _calc_plot_size(points)
 
-
-    region = st.plotly_chart(
-        px.scatter(
-            points.coords,
-            x=points.xcol,
-            y=points.ycol,
-            width=width,
-            height=height,
-            opacity=st.number_input("Opacity", value=0.5, min_value=0.01, max_value=1., step=0.01),
-            color_discrete_sequence=["blue"]
-        ),
-        selection_mode="lasso",
-        on_select="rerun"
-    )
+    with st.spinner("Loading plot..."):
+        region = st.plotly_chart(
+            px.scatter(
+                points.coords,
+                x=points.xcol,
+                y=points.ycol,
+                width=width,
+                height=height,
+                opacity=st.number_input("Opacity", value=0.5, min_value=0.01, max_value=1., step=0.01),
+                color_discrete_sequence=["blue"]
+            ),
+            selection_mode="lasso",
+            on_select="rerun"
+        )
     st.write("Use the lasso tool to select a region of interest")
     n_points = len(region["selection"]["points"])
     st.write(f"Selected {n_points:,} points")
