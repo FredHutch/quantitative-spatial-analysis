@@ -24,8 +24,7 @@ def setup_data_portal():
     st.write("#### Spatial Data Catalog")
 
     # The domain may be passed in as a query parameter, or it may be stored in the session state
-    domain = "dev.cirro.bio" # FIXME
-    # domain = get_query_param("domain") # FIXME
+    domain = get_query_param("domain")
     if domain is None:
         tenant_dict = {
             tenant['displayName']: tenant['domain']
