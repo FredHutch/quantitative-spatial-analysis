@@ -1,7 +1,5 @@
 from pathlib import Path
-from time import sleep
 
-from cirro import DataPortalProject
 from app.cirro import get_project, list_datasets, parse_region
 from app.models.points import SpatialPoints, SpatialDataset, CirroDataset
 
@@ -90,7 +88,7 @@ class SpatialDataCatalog:
             self.add_dataset(dataset)
 
         # Make a table of the datasets
-        self. df = pd.DataFrame([
+        self.df = pd.DataFrame([
             {
                 "Name": self.datasets[ingest_id].name,
                 "Created": self.datasets[ingest_id].created_at.strftime("%Y-%m-%d %H:%M"),
