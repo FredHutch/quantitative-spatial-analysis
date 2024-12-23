@@ -37,6 +37,11 @@ def format_anndata() -> AnnData:
     obs = pd.read_parquet('xenium/cells.parquet')
     obs = obs.set_index('cell_id', drop=False)
 
+    # If the cell_feature_matrix.tar.gz file is present, extract it
+    if Path("xenium/cell_feature_matrix.tar.gz").exists():
+        logger.info("Extracting cell_feature_matrix.tar.gz")
+        shutil.unpack_archive("xenium/cell_feature_matrix.tar.gz", "xenium/cell_feature_matrix")
+
     # Read the gene abundances from cell_feature_matrix/
     logger.info("Reading the cell feature matrix")
     adata: AnnData = sc.read_10x_mtx('xenium/cell_feature_matrix')
