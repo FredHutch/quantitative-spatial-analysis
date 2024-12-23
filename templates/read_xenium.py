@@ -40,7 +40,7 @@ def format_anndata() -> AnnData:
     # If the cell_feature_matrix.tar.gz file is present, extract it
     if Path("xenium/cell_feature_matrix.tar.gz").exists():
         logger.info("Extracting cell_feature_matrix.tar.gz")
-        shutil.unpack_archive("xenium/cell_feature_matrix.tar.gz", "xenium/cell_feature_matrix")
+        shutil.unpack_archive("xenium/cell_feature_matrix.tar.gz", "xenium")
 
     # Read the gene abundances from cell_feature_matrix/
     logger.info("Reading the cell feature matrix")
