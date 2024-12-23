@@ -234,16 +234,21 @@ def pick_region():
     width, height = _calc_plot_size(points)
 
     with st.spinner("Loading plot..."):
+        # Set up the scatter plot
+        fig = px.scatter(
+            points.coords,
+            x=points.xcol,
+            y=points.ycol,
+            width=width,
+            height=height,
+            opacity=st.number_input("Opacity", value=0.5, min_value=0.01, max_value=1., step=0.01),
+            color_discrete_sequence=["blue"]
+        )
+        # Invert the y-axis
+        fig.update_yaxes(autorange="reversed")
+        # Display in streamlit and let the user select a region
         region = st.plotly_chart(
-            px.scatter(
-                points.coords,
-                x=points.xcol,
-                y=points.ycol,
-                width=width,
-                height=height,
-                opacity=st.number_input("Opacity", value=0.5, min_value=0.01, max_value=1., step=0.01),
-                color_discrete_sequence=["blue"]
-            ),
+            fig,
             selection_mode="lasso",
             on_select="rerun"
         )
@@ -317,6 +322,8 @@ def show_region():
         opacity=st.number_input("Opacity", value=0.5, min_value=0.01, max_value=1., step=0.01),
         color_discrete_sequence=["blue"]
     )
+    # Invert the y-axis
+    fig.update_yaxes(autorange="reversed")
 
     # Add the region outline
     for shape in region.outline:
