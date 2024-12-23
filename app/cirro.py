@@ -135,6 +135,12 @@ def select_project() -> Optional[DataPortalProject]:
 def cirro_dataset_link(dataset_id: str) -> str:
     """Return the URL of the dataset in Cirro."""
 
+    return f"{cirro_project_link()}/dataset/{dataset_id}"
+
+
+def cirro_project_link() -> str:
+    """Return the URL of the project in Cirro."""
+
     # Get the Cirro domain
     domain = get_query_param("domain")
     # If we are not logged in, stop here
@@ -146,13 +152,19 @@ def cirro_dataset_link(dataset_id: str) -> str:
 
     if project is None:
         raise ValueError("No project selected")
-    return f"https://{domain}/project/{project.id}/dataset/{dataset_id}"
+    return f"https://{domain}/project/{project.id}"
 
 
 def cirro_analysis_link(dataset_id: str, analysis_id: str) -> str:
     """Return a URL for the page to run an analysis in Cirro."""
 
-    return f"{cirro_dataset_link(dataset_id)}/pipeline/{analysis_id}"
+    if dataset_id is not None:
+
+        return f"{cirro_dataset_link(dataset_id)}/pipeline/{analysis_id}"
+    
+    else:
+
+        return f"{cirro_project_link()}/pipeline/{analysis_id}"
 
 
 def save_region(
@@ -222,11 +234,20 @@ def save_region(
     return ds
 
 
-def parse_region(dataset: DataPortalDataset) -> Optional[SpatialRegion]:
+def parse_region(
+    dataset: DataPortalDataset,
+    parse_retry_interval = 0.1,
+    parse_retry_timeout = 10
+) -> Optional[SpatialRegion]:
     """
     Read region information from a dataset
     """
-    region_json = dataset.list_files().filter_by_pattern("data/region.json")
+    parse_retry_timer = time() + parse_retry_timeout
+    while time() < parse_retry_timer:
+        region_json = dataset.list_files().filter_by_pattern("data/region.json")
+        if region_json:
+            break
+        sleep(parse_retry_interval)
     if len(region_json) == 0:
         raise ValueError(f"No region.json file found in {dataset.name}")
 

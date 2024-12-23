@@ -25,6 +25,13 @@ def main():
         # Show the dataset selection menu
         select_dataset()
 
+        # Show a button that lets the user kick off their own analysis
+        html.cirro_analysis_button(
+            "Run a new analysis",
+            None,
+            "process-hutch-quantitative-spatial-analysis-1_0"
+        )
+
     # Otherwise, show the dataset
     else:
         show_dataset()
@@ -42,7 +49,7 @@ def select_dataset():
         st.write("Select a data collection from the menu")
         return
     elif catalog.analyses.shape[0] == 0:
-        st.write("Data collection does not contain any recognized spatial datasets")
+        st.write("Data collection does not contain any recognized spatial analyses")
         return
 
     # Show the table of datasets which can be selected
