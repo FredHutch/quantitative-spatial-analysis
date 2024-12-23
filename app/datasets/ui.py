@@ -259,11 +259,16 @@ def pick_region():
     if name:
         if st.button(f"Save Region - {name}"):
             with st.spinner("Saving region..."):
-                ds = save_region(
-                    points,
-                    name,
-                    region["selection"]["lasso"]
-                )
+                try:
+                    ds = save_region(
+                        points,
+                        name,
+                        region["selection"]["lasso"]
+                    )
+                except Exception as e:
+                    st.exception(e)
+                    back_button("pick_region")
+                    return
                 if ds is not None:
                     try:
                         catalog.add_dataset(ds)

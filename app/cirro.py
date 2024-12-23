@@ -158,9 +158,7 @@ def cirro_analysis_link(dataset_id: str, analysis_id: str) -> str:
 def save_region(
     points: SpatialPoints,
     region_id: str,
-    outline: dict,
-    confirm_upload_timeout = 5,
-    confirm_upload_interval = 0.5
+    outline: dict
 ) -> DataPortalDataset:
     """
     Save a region to Cirro.
@@ -220,21 +218,6 @@ def save_region(
 
     st.write(f"Saved region: {region_id}")
     logger.info(f"Saved region: {region_id}")
-
-    # Get the dataset object
-    with st.spinner("Confirming upload..."):
-        start_time = time()
-        while (time() - start_time) <= confirm_upload_timeout:
-            ds = project.get_dataset_by_id(ds.id)
-
-            # Make sure that the region.json is in the list of files
-            if ds.list_files().filter_by_pattern("data/region.json"):
-                break
-
-            sleep(confirm_upload_interval)
-
-        if not ds.list_files().filter_by_pattern("data/region.json"):
-            raise ValueError("Failed to save region")
 
     return ds
 
