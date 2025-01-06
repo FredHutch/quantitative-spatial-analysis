@@ -134,7 +134,7 @@ def explore_analysis(dataset_id: str):
     ds = catalog.datasets[dataset_id]
 
     # Read the counts
-    counts = ds.list_files().get_by_name("data/counts.csv").read_csv()
+    counts = ds.list_files().get_by_name("data/combined/counts.csv").read_csv()
 
     counts.assign(
         **{
