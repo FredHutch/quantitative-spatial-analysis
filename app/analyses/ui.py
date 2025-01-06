@@ -162,8 +162,7 @@ def explore_analysis(dataset_id: str):
         [
             "Cell Clusters Across Regions",
             "Neighborhoods Across Regions",
-            "Cell Clusters Across Neighborhoods",
-            "Cell Clusters Across Regions and Neighborhoods"
+            "Cell Clusters Across Neighborhoods"
         ]
     )
     getattr(plots, plot_type.replace(" ", "_").lower())(counts)
