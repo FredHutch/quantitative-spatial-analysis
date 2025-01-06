@@ -33,7 +33,7 @@ def setup_data_portal():
 
         # Let the user select a tenant
         st.write("### Quantitative Spatial Analysis")
-        st.write("Log in to the [Cirro](https://cirro.bio) data backend to get started.")
+        st.write("Log in to the [Cirro](https://cirro.bio) data backend by selecting the appropriate institution below.")
         tenant = st.selectbox(
             "Select Organization",
             ["< select for login >"] + list(tenant_dict.keys())
