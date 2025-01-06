@@ -103,6 +103,7 @@ class SpatialDataCatalog:
                 "id": ingest_id
             }
             for ingest_id, dataset_group in self.groups.items()
+            if ingest_id in self.datasets
         ])
         if self.df.shape[0]:
             self.df.sort_values("Created", ascending=False, inplace=True)
