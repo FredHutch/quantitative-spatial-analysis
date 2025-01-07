@@ -203,7 +203,7 @@ def _calc_plot_size(points: SpatialPoints) -> Tuple[int, int]:
 
 
 def back_button(session_key: Union[str, List[str]]):
-    if st.button("Back", id=f"back-{session_key}"):
+    if st.button("Back", key=f"back-{session_key}"):
         if isinstance(session_key, list):
             for key in session_key:
                 clear_query_param(key)

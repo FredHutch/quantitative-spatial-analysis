@@ -1,3 +1,4 @@
 streamlit
 cirro
 plotly
+scipy

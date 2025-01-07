@@ -3,6 +3,7 @@ import pandas as pd
 import streamlit as st
 import plotly.express as px
 from plotly.graph_objects import Figure
+from scipy.stats import chi2_contingency
 
 
 def _barmode_selector():
@@ -79,6 +80,31 @@ def _format_inputs(counts: pd.DataFrame, cnames: List[str]) -> Tuple[pd.DataFram
     return df, metric
 
 
+def _chi2_test(df: pd.DataFrame, group1: str, group2: str):
+    # Compute the chi-squared test
+    chi2 = chi2_contingency(
+        pd.crosstab(
+            df[group1],
+            df[group2],
+            df["Cell Count"],
+            aggfunc="sum"
+        ).fillna(0)
+    )
+    formatted_pvalue = (
+        f"{chi2.pvalue:.2E}"
+        if chi2.pvalue < 0.01
+        else
+        f"{chi2.pvalue:.2f}"
+    )
+    st.write(
+        f"""
+        The p-value for the hypothesis that cells are distributed independently
+        across the {group1} and {group2} categories is {formatted_pvalue}
+        (chi-squared contingency test).
+        """
+    )
+
+
 def cell_clusters_across_regions(counts: pd.DataFrame):
     df, metric = _format_inputs(counts, ["region", "cluster"])
 
@@ -96,6 +122,8 @@ def cell_clusters_across_regions(counts: pd.DataFrame):
     )
 
     _show_image_and_download_button(fig)
+
+    _chi2_test(df, "Region", "Cluster")
 
 
 def neighborhoods_across_regions(counts: pd.DataFrame):
@@ -115,6 +143,8 @@ def neighborhoods_across_regions(counts: pd.DataFrame):
     )
 
     _show_image_and_download_button(fig)
+
+    _chi2_test(df, "Region", "Neighborhood")
 
 
 def cell_clusters_across_neighborhoods(counts: pd.DataFrame):
