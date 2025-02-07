@@ -18,35 +18,17 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-def cluster_xenium(adata: AnnData):
-    # Cluster the data
-    logger.info("Running PCA")
-    sc.pp.pca(adata, n_comps=min(adata.n_vars, adata.n_obs, 50))
-    logger.info("Finding neighbors")
-    sc.pp.neighbors(adata, n_neighbors=10)
-    logger.info("Clustering")
-    resolution = float("${params.resolution}")
-    logger.info(f'Using resolution: {resolution}')
-    # Run clustering
-    sc.tl.leiden(
-        adata,
-        resolution=resolution,
-        key_added="cluster",
-        flavor="igraph",
-        n_iterations=2,
-        directed=False
-    )
-    logger.info("Done")
-
-    return adata
-
-
-def cluster_stardist(adata: AnnData):
+def cluster(adata: AnnData):
+    """
+    Cluster the data with leiden clustering
+    """
 
     logger.info("Running PCA")
     sc.pp.pca(adata, n_comps=min(adata.n_vars, adata.n_obs, 51)-1)
+    n_neighbors = int("${params.n_neighbors}")
+    logger.info(f'Using n_neighbors: {n_neighbors}')
     logger.info("Finding neighbors")
-    sc.pp.neighbors(adata, n_neighbors=10)
+    sc.pp.neighbors(adata, n_neighbors=n_neighbors)
 
     logger.info("Clustering")
     resolution = float("${params.resolution}")
@@ -61,9 +43,6 @@ def cluster_stardist(adata: AnnData):
         directed=False
     )
     logger.info("Done")
-
-    return adata
-
 
 
 def main():
@@ -76,18 +55,9 @@ def main():
     data_type = adata.uns["spatial_dataset"]["type"]
     logger.info(f"Data type: {data_type}")
 
-    # If this is a xenium dataset
-    if data_type == "xenium":
-        adata = cluster_xenium(adata)
-
-    # If it is a stardist dataset
-    elif data_type == "stardist":
-        adata = cluster_stardist(adata)
-
-    # Otherwise raise an error
-    else:
-        raise ValueError(f"Unknown dataset type {data_type}")
-
+    # There is currently no difference in clustering
+    # between data types
+    cluster(adata)
 
     # Write out the clustered data
     logger.info("Writing clustered data")
