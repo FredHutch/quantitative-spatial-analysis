@@ -29,7 +29,7 @@ process subset_region {
     publishDir "${params.outdir}/regions", mode: 'copy', overwrite: true, pattern: "*.json"
 
     input:
-    tuple path("spatialdata.h5ad"), val(region_id), path("region.json")
+    tuple val(image_id), path("spatialdata.h5ad"), val(region_id), path("region.json")
 
     output:
     path "region.h5ad", emit: anndata
@@ -105,7 +105,7 @@ workflow extract_regions_xenium {
                 .map { [it[0], it[2]] }
         )
         .transpose()
-        .map { [it[1], it[2][0], it[2][1]] }
+        .map { [it[0], it[1], it[2][0], it[2][1]] }
         | subset_region
 
     emit:
@@ -140,7 +140,7 @@ workflow extract_regions_stardist {
                 .map { [it[0], it[2]] }
         )
         .transpose()
-        .map { [it[1], it[2][0], it[2][1]] }
+        .map { [it[0], it[1], it[2][0], it[2][1]] }
         | subset_region
 
     // Get the spatialdata which is already formatted nicely in the stardist outputs

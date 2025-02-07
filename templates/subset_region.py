@@ -7,7 +7,10 @@ import json
 from shapely import Polygon, Point
 
 
-def extract_region(spatial: ad.AnnData, region_def: Dict[str, Any]) -> ad.AnnData:
+def extract_region(
+    spatial: ad.AnnData,
+    region_def: Dict[str, Any]
+) -> ad.AnnData:
 
     # Set up a vector of False values for each point in the spatial dataset
     mask = [False] * spatial.shape[0]
@@ -31,6 +34,9 @@ def extract_region(spatial: ad.AnnData, region_def: Dict[str, Any]) -> ad.AnnDat
 
     # Subset the spatial dataset to the points within the region
     subset = spatial[mask, :]
+
+    # Add the image ID to the metacata
+    subset.obs["image"] = "${image_id}"
 
     # Add the region ID to the metadata
     subset.obs["region"] = "${region_id}"
