@@ -21,12 +21,14 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+
 def plot_spatial():
     # Read in the spatial dataset
     logger.info("Reading the spatial dataset")
     adata: ad.AnnData = ad.read_h5ad("spatialdata.h5ad")
 
-    # For each region, make a side-by-side plot of the spatial coordinates colored by the cluster, and by the neighborhood
+    # For each region, make a side-by-side plot of the spatial coordinates
+    # colored by the cluster, and by the neighborhood
     vc = adata.obs['region'].value_counts()
     for region in adata.obs["region"].unique():
         logger.info(f"Plotting region: {region} ({vc[region]} cells)")
@@ -38,7 +40,11 @@ def plot_spatial():
         # Subset to the region of interest
         region_data = adata[adata.obs["region"] == region]
         plot_df = pd.concat([
-            pd.DataFrame(region_data.obsm["spatial"], columns=["x", "y"], index=region_data.obs_names),
+            pd.DataFrame(
+                region_data.obsm["spatial"],
+                columns=["x", "y"],
+                index=region_data.obs_names
+            ),
             region_data.obs
         ], axis=1)
         logger.info(f"Plotting {len(plot_df):,} cells")
@@ -53,7 +59,11 @@ def plot_spatial():
 
         fig, axs = plt.subplots(1, 2, figsize=(12, 6))
 
-        for ax, title, color in zip(axs, ["Cell Type", "Neighborhood"], ["cluster", "neighborhood"]):
+        for ax, title, color in zip(
+            axs,
+            ["Cell Type", "Neighborhood"],
+            ["cluster", "neighborhood"]
+        ):
             sns.scatterplot(
                 data=plot_df,
                 x="x",
@@ -97,10 +107,17 @@ def plot_counts():
     # 10293  TMA 3      296             5      1
     # 10294  TMA 3      306             5      1
 
-    # Compare the number of cells in each region (summed across all clusters and neighborhoods)
+    # Compare the number of cells in each region (summed
+    # across all clusters and neighborhoods)
     logger.info("Plotting counts by region")
     sns.barplot(
-        data=df.reindex(columns=["region", "count"]).groupby("region").sum().reset_index(),
+        data=(
+            df
+            .reindex(columns=["region", "count"])
+            .groupby("region")
+            .sum()
+            .reset_index()
+        ),
         x="region",
         y="count"
     )
@@ -113,7 +130,8 @@ def plot_counts():
     plt.savefig("plots/region_counts.pdf")
     plt.close()
 
-    # Plot a stacked bar graph with the proportion of cells in each neighborhood in each region
+    # Plot a stacked bar graph with the proportion of cells
+    # in each neighborhood in each region
     logger.info("Plotting counts by neighborhood")
 
     # Normalize the counts within each region, ignoring the cluster assignment
@@ -124,7 +142,10 @@ def plot_counts():
         .sum()
         .reset_index()
         .groupby("region")
-        .apply(lambda x: x.assign(count=x["count"] / x["count"].sum()), include_groups=False)
+        .apply(
+            lambda x: x.assign(count=x["count"] / x["count"].sum()),
+            include_groups=False
+        )
         .assign(neighborhood=lambda x: x["neighborhood"].astype(str))
         .rename(columns=dict(neighborhood="Neighborhood"))
     )
@@ -159,9 +180,15 @@ def plot_counts():
     )
     # Do not show more than 20 cell clusters, filtering on the most common
     if wide_df.shape[1] > 20:
-        wide_df = wide_df[wide_df.sum().sort_values(ascending=False).index[:20]]
+        wide_df = wide_df[
+            wide_df.sum().sort_values(ascending=False).index[:20]
+        ]
 
-    g = sns.clustermap(wide_df, cmap="viridis", cbar_kws={"label": "Proportion of Cells"})
+    g = sns.clustermap(
+        wide_df,
+        cmap="viridis",
+        cbar_kws={"label": "Proportion of Cells"}
+    )
     g.ax_heatmap.set_xlabel("Cell Cluster")
     g.ax_heatmap.set_ylabel("Neighborhood")
     plt.tight_layout()
@@ -177,6 +204,7 @@ def main():
 
     # Plot the summary metrics
     plot_counts()
+
 
 if __name__ == "__main__":
     main()
