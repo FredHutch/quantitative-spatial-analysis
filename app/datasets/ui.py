@@ -31,22 +31,22 @@ def main():
         clear_query_param("show_region")
         # Show the project selection menu
         select_project()
-    
+
     # If there is no dataset selected
     elif get_query_param("dataset") is None:
         clear_query_param("pick_region")
         clear_query_param("show_region")
         # Show the dataset selection menu
         select_dataset()
-    
+
     # If the user has selected a dataset to pick regions for, show that interface
     elif get_query_param("pick_region") is not None:
         pick_region()
-    
+
     # If the user has selected a region to display, show that region
     elif get_query_param("show_region") is not None:
         show_region()
-    
+
     # Otherwise, show the dataset
     else:
         show_dataset()
@@ -62,25 +62,25 @@ def select_dataset():
     # If there are no datasets available
     if catalog.df is None:
         st.write("Select a data collection from the menu")
-        return
+
     elif catalog.df.shape[0] == 0:
         st.write("Data collection does not contain any recognized spatial datasets")
-        return
 
-    # Show the table of datasets which can be selected
-    show_menu(
-        "dataset",
-        catalog.df,
-        ["Name", "Created", "Type", "Analysis Outputs"],
-        {
-            "Name": st.column_config.TextColumn(width="medium", disabled=True),
-            "Created": st.column_config.TextColumn(max_chars=14, disabled=True),
-            "Type": st.column_config.TextColumn(width="small", disabled=True),
-            "Analysis Outputs": st.column_config.ListColumn()
-        },
-        "Select a dataset to view its contents",
-        clear_params=["pick_region", "show_region"]
-    )
+    else:
+        # Show the table of datasets which can be selected
+        show_menu(
+            "dataset",
+            catalog.df,
+            ["Name", "Created", "Type", "Analysis Outputs"],
+            {
+                "Name": st.column_config.TextColumn(width="medium", disabled=True),
+                "Created": st.column_config.TextColumn(max_chars=14, disabled=True),
+                "Type": st.column_config.TextColumn(width="small", disabled=True),
+                "Analysis Outputs": st.column_config.ListColumn()
+            },
+            "Select a dataset to view its contents",
+            clear_params=["pick_region", "show_region"]
+        )
 
     # Show the back button
     back_button("project")
@@ -125,7 +125,7 @@ def show_dataset():
     if len(analysis_outputs) == 0:
         back_button("dataset")
         return
-    
+
     # Group the analysis outputs by type
     analysis_output_types = [catalog.dataset_types[dataset_id] for dataset_id in analysis_outputs]
     ix = 0

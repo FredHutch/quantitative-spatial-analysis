@@ -47,23 +47,24 @@ def select_dataset():
     # If there are no datasets available
     if catalog.analyses is None:
         st.write("Select a data collection from the menu")
-        return
+
     elif catalog.analyses.shape[0] == 0:
         st.write("Data collection does not contain any recognized spatial analyses")
-        return
 
-    # Show the table of datasets which can be selected
-    show_menu(
-        "dataset",
-        catalog.analyses,
-        ["Name", "Created", "Type"],
-        {
-            "Name": st.column_config.TextColumn(width="medium", disabled=True),
-            "Description": st.column_config.TextColumn(width="medium", disabled=True),
-            "Created": st.column_config.TextColumn(max_chars=14, disabled=True),
-        },
-        "Select a dataset to view its contents"
-    )
+    else:
+
+        # Show the table of datasets which can be selected
+        show_menu(
+            "dataset",
+            catalog.analyses,
+            ["Name", "Created", "Type"],
+            {
+                "Name": st.column_config.TextColumn(width="medium", disabled=True),
+                "Description": st.column_config.TextColumn(width="medium", disabled=True),
+                "Created": st.column_config.TextColumn(max_chars=14, disabled=True),
+            },
+            "Select a dataset to view its contents"
+        )
 
     # Show the back button
     back_button("project")

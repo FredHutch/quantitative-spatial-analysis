@@ -6,7 +6,7 @@ def get_query_param(key: str):
     val = st.query_params.get(key)
     if val is not None:
         return val
-    
+
     # If the session_state is set
     if st.session_state.get(key) is not None:
         val = st.session_state.get(key)
@@ -18,8 +18,8 @@ def get_query_param(key: str):
 def set_query_param(
     key: str,
     value: str,
-    timeout = 5,
-    poll_interval = 0.1
+    timeout=5,
+    poll_interval=0.1
 ):
     """
     Set the query param and also the session state.
