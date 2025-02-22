@@ -3,6 +3,7 @@ include { summarize } from './summarize'
 
 process cluster_points {
     publishDir "${params.outdir}", mode: 'copy', overwrite: true, pattern: "**.txt"
+    publishDir "${params.outdir}/combined", mode: 'copy', overwrite: true, pattern: "cluster_feature_metrics.csv"
 
     input:
     path "spatialdata.h5ad"
@@ -10,6 +11,7 @@ process cluster_points {
     output:
     path "clustered.h5ad", emit: anndata
     path "logs/*", emit: logs
+    path "cluster_feature_metrics.csv", emit: cluster_feature_metrics
 
     script:
     template "cluster_points.py"

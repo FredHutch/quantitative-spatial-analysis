@@ -163,6 +163,17 @@ def main():
     adata.write('clustered.h5ad')
     logger.info("Done")
 
+    # Write out summary metrics for each feature in each cluster
+    logger.info("Writing out summary statistics")
+    (
+        adata
+        .to_df()
+        .groupby(adata.obs["cluster"])
+        .apply(lambda d: d.describe())
+        .to_csv("cluster_feature_metrics.csv")
+    )
+    logger.info("Done")
+
 
 if __name__ == "__main__":
     main()
