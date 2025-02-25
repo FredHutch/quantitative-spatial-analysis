@@ -104,7 +104,7 @@ def select_project() -> Optional[DataPortalProject]:
         # Report it to the user and stop here
         st.exception(e)
         return
-    
+
     # Make a DataFrame with the project info
     project_df = pd.DataFrame(
         [
@@ -129,7 +129,6 @@ def select_project() -> Optional[DataPortalProject]:
         },
         header_text="Select a project"
     )
-
 
 
 def cirro_dataset_link(dataset_id: str) -> str:
@@ -161,7 +160,7 @@ def cirro_analysis_link(dataset_id: str, analysis_id: str) -> str:
     if dataset_id is not None:
 
         return f"{cirro_dataset_link(dataset_id)}/pipeline/{analysis_id}"
-    
+
     else:
 
         return f"{cirro_project_link()}/pipeline/{analysis_id}"
@@ -181,7 +180,7 @@ def save_region(
     # If we are not logged in, stop here
     if not portal:
         raise ValueError("Not logged in")
-    
+
     # Get the project selected by the user
     project = get_project()
     if project is None:
@@ -236,8 +235,8 @@ def save_region(
 
 def parse_region(
     dataset: DataPortalDataset,
-    parse_retry_interval = 0.1,
-    parse_retry_timeout = 10
+    parse_retry_interval=0.1,
+    parse_retry_timeout=10
 ) -> Optional[SpatialRegion]:
     """
     Read region information from a dataset
@@ -268,5 +267,5 @@ def parse_region(
                 )
             )
         )
-    except Exception as _:
+    except: # noqa
         return

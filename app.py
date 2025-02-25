@@ -9,12 +9,15 @@ def run():
 
     # Set up the pages
     login = st.Page("app/login/ui.py", title="Login", url_path="login")
+    projects = st.Page("app/projects/ui.py", title="Projects", url_path="projects")
     datasets = st.Page("app/datasets/ui.py", title="Datasets", url_path="datasets")
     analyses = st.Page("app/analyses/ui.py", title="Analyses", url_path="analyses")
 
     # If we are logged in, we can access the datasets and analyses pages
     if st.session_state.get("data_portal") is None:
         pages = [login]
+    elif st.session_state.get("project") is None:
+        pages = [projects]
     else:
         pages = [datasets, analyses]
 
@@ -24,14 +27,6 @@ def run():
     # Set a default refresh time for reading the data catalog
     if st.session_state.get("refresh_time") is None:
         st.session_state["refresh_time"] = time()
-    
-    if st.session_state.get("data_portal") is not None:
-
-        # Refresh only when the user clicks the button
-        st.sidebar.button(
-            "Refresh",
-            on_click=update_refresh_time,
-        )
 
     # Run the app
     pg.run()

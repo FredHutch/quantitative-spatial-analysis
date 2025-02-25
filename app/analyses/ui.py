@@ -1,25 +1,18 @@
+from cirro import DataPortalDataset
 from app import html
 from app.datasets.ui import back_button
 import streamlit as st
 from app.analyses.data import get_catalog, SpatialAnalysisCatalog
 from app.analyses import plots
 from app.streamlit import get_query_param, clear_query_param
-from app.cirro import select_project, show_menu
+from app.cirro import show_menu
 
 
 def main():
     st.write("#### Spatial Data Analysis")
 
-    # If there is no project selected
-    if get_query_param("project") is None:
-        clear_query_param("dataset")
-        clear_query_param("pick_region")
-        clear_query_param("show_region")
-        # Show the project selection menu
-        select_project()
-    
     # If there is no dataset selected
-    elif get_query_param("dataset") is None:
+    if get_query_param("dataset") is None:
         clear_query_param("pick_region")
         clear_query_param("show_region")
         # Show the dataset selection menu
@@ -52,12 +45,13 @@ def select_dataset():
         st.write("Data collection does not contain any recognized spatial analyses")
 
     else:
+        print(catalog.analyses)
 
         # Show the table of datasets which can be selected
         show_menu(
             "dataset",
             catalog.analyses,
-            ["Name", "Created", "Type"],
+            ["Name", "Created", "Description"],
             {
                 "Name": st.column_config.TextColumn(width="medium", disabled=True),
                 "Description": st.column_config.TextColumn(width="medium", disabled=True),
@@ -72,7 +66,7 @@ def select_dataset():
 
 def get_catalog_cached() -> SpatialAnalysisCatalog:
     # Get the data catalog, respecting the refresh time
-    with st.spinner(f"Loading catalog..."):
+    with st.spinner("Loading catalog..."):
 
         return get_catalog(
             st.session_state.get("refresh_time"),
@@ -95,7 +89,7 @@ def show_dataset():
         clear_query_param("dataset")
         st.rerun()
         return
-    
+
     # Get the dataset
     dataset = catalog.datasets[dataset_id]
 
@@ -119,8 +113,15 @@ def show_dataset():
 
     # Show a display of the analysis results
     explore_analysis(dataset_id)
-    
+
     back_button("dataset")
+
+
+def show_markers_by_cluster(ds: DataPortalDataset):
+    # Read the full dataset
+    with st.spinner("Reading Data..."):
+        adata = ds.list_files().get_by_id("data/combined/spatialdata.h5ad").read_h5ad()
+    print(adata)
 
 
 def explore_analysis(dataset_id: str):
@@ -133,6 +134,9 @@ def explore_analysis(dataset_id: str):
 
     # Get the dataset
     ds = catalog.datasets[dataset_id]
+
+    # Display the marker abundances by cluster
+    show_markers_by_cluster(ds)
 
     # Read the counts
     counts = ds.list_files().get_by_name("data/combined/counts.csv").read_csv()

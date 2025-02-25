@@ -4,7 +4,7 @@ import pandas as pd
 import streamlit as st
 import plotly.express as px
 from app import html
-from app.cirro import save_region, select_project, show_menu
+from app.cirro import save_region, show_menu
 from app.datasets.data import get_catalog, SpatialDataCatalog
 from app.models.points import SpatialPoints, SpatialRegion
 from app.streamlit import set_query_param, clear_query_param, get_query_param
@@ -12,7 +12,7 @@ from app.streamlit import set_query_param, clear_query_param, get_query_param
 
 def get_catalog_cached() -> SpatialDataCatalog:
     # Get the data catalog, respecting the refresh time
-    with st.spinner(f"Loading catalog..."):
+    with st.spinner("Loading catalog..."):
 
         return get_catalog(
             st.session_state.get("refresh_time"),
@@ -24,16 +24,8 @@ def main():
 
     st.write("#### Spatial Data Catalog")
 
-    # If there is no project selected
-    if get_query_param("project") is None:
-        clear_query_param("dataset")
-        clear_query_param("pick_region")
-        clear_query_param("show_region")
-        # Show the project selection menu
-        select_project()
-
     # If there is no dataset selected
-    elif get_query_param("dataset") is None:
+    if get_query_param("dataset") is None:
         clear_query_param("pick_region")
         clear_query_param("show_region")
         # Show the dataset selection menu
@@ -130,7 +122,7 @@ def show_dataset():
     analysis_output_types = [catalog.dataset_types[dataset_id] for dataset_id in analysis_outputs]
     ix = 0
     for dataset_type, dataset_list in pd.Series(analysis_outputs).groupby(analysis_output_types):
-        
+
         # Make a card for each analysis type
         card_key = f"{dataset_id}-{ix}"
         with st.container(key=card_key):
