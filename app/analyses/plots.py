@@ -10,7 +10,7 @@ def _barmode_selector():
     return (
         "group"
         if st.segmented_control("Bar Mode", ["Stacked", "Unstacked"], default="Stacked") == "Unstacked"
-        else "overlay"
+        else "stack"
     )
 
 
@@ -28,7 +28,10 @@ def _show_image_and_download_button(fig: Figure):
 
 
 def _format_inputs(counts: pd.DataFrame, cnames: List[str]) -> Tuple[pd.DataFrame, str]:
-    # Collapse by cell clusters and regions, making sure to treat the categories as strings
+    # Collapse by any number of categories
+    cnames = list(set(cnames))
+
+    # Make sure to treat the categories as strings
     df = (
         counts
         .assign(
@@ -51,12 +54,14 @@ def _format_inputs(counts: pd.DataFrame, cnames: List[str]) -> Tuple[pd.DataFram
             "Percent of Total": 100 * df["count"] / df["count"].sum()
         },
         **{
-            f"Percent of {cname.title()}": 100 * df["count"] / df.groupby(cname)["count"].transform("sum")
+            f"Percent of {cname.title()}": 100 * (df["count"] / df.groupby(cname)["count"].transform("sum"))
             for cname in cnames
         }
     ).rename(
         columns=dict(count="Cell Count")
     )
+
+    # assert False, df.query("neighborhood == '0'")
 
     # Let the user select the metric
     metric = st.selectbox(
@@ -65,17 +70,6 @@ def _format_inputs(counts: pd.DataFrame, cnames: List[str]) -> Tuple[pd.DataFram
             f"Percent of {cname.title()}" for cname in cnames
         ]
     )
-
-    # Let the user filter the clusters / neighborhoods / regions
-    for cname in cnames:
-        df = df.loc[
-            df[cname].isin(
-                st.multiselect(f"{cname}s".title(), df[cname].unique(), df[cname].unique())
-            )
-        ]
-
-    # Title case all of the columns
-    df = df.rename(columns=lambda cname: cname.title())
 
     return df, metric
 
@@ -105,62 +99,89 @@ def _chi2_test(df: pd.DataFrame, group1: str, group2: str):
     )
 
 
-def cell_clusters_across_regions(counts: pd.DataFrame):
-    df, metric = _format_inputs(counts, ["region", "cluster"])
+@st.cache_data
+def col_options(counts: pd.DataFrame):
+    options = list(counts.columns.values)
+    options.sort()
+    return [
+        val for val in options if val != "count"
+    ]
 
-    st.dataframe(df)
 
-    # Plot the data
+def plot_bars(counts: pd.DataFrame):
+    # Let the user select a grouping for the X axis, and the color
+    selected_x = st.selectbox("X-Axis", options=col_options(counts), index=col_options(counts).index("region"))
+    selected_color = st.selectbox("Color", options=col_options(counts), index=col_options(counts).index("neighborhood"))
+
+    # Format the data to display, and ask the user to select which one to use as the value
+    df, metric = _format_inputs(counts, [selected_color, selected_x])
+
+    # Set up the plot
     fig = px.bar(
-        df,
-        x="Region",
+        data_frame=df,
+        x=selected_x,
         y=metric,
-        color="Cluster",
-        title="Cell Clusters Across Regions",
+        color=selected_color,
         color_discrete_sequence=px.colors.qualitative.D3,
-        barmode=_barmode_selector()
+        barmode=_barmode_selector(),
+        labels={
+            cname: cname.title()
+            for cname in df.columns.values
+        }
+
     )
 
     _show_image_and_download_button(fig)
 
-    _chi2_test(df, "Region", "Cluster")
+    if selected_x != selected_color:
+        _chi2_test(df, selected_x, selected_color)
 
 
-def neighborhoods_across_regions(counts: pd.DataFrame):
-    df, metric = _format_inputs(counts, ["region", "neighborhood"])
+def compare_counts(counts: pd.DataFrame):
 
-    st.dataframe(df)
+    # Let the user filter based on groups
+    filters = {
+        cname: st.multiselect(
+            f"Filter on {cname}",
+            options=cvals.sort_values().unique(),
+            default=cvals.sort_values().unique()
+        )
+        for cname, cvals in counts.items()
+        if cname != "count"
+    }
+    for cname, selected in filters.items():
+        counts = counts.loc[counts[cname].isin(selected)]
 
-    # Plot the data
-    fig = px.bar(
-        df,
-        x="Region",
-        y=metric,
-        color="Neighborhood",
-        title="Cell Neighborhoods Across Regions",
-        color_discrete_sequence=px.colors.qualitative.D3,
-        barmode=_barmode_selector()
+    st.write(f"Total number of cells: {counts.shape[0]:,}")
+
+    plot_type = st.selectbox(
+        label="Plot Type",
+        options=["Bars"]
     )
 
-    _show_image_and_download_button(fig)
+    if plot_type == "Bars":
+        plot_bars(counts)
 
-    _chi2_test(df, "Region", "Neighborhood")
+    # # Get the number of cells, clusters, neighborhoods, and regions
+    # n_cells = counts["count"].sum()
+    # n_clusters = counts["cluster"].nunique()
+    # n_neighborhoods = counts["neighborhood"].nunique()
+    # n_regions = counts["region"].nunique()
+    # # Show the summary information
+    # st.write(f"""
+    #     - **Regions**: {n_regions:,}
+    #     - **Neighborhoods**: {n_neighborhoods:,} 
+    #     - **Clusters**: {n_clusters:,} 
+    #     - **Cells**: {n_cells:,}
+    # """)
 
+    # # Let the user select the display format
+    # plot_type = st.selectbox(
+    #     "Display",
+    #     [
+    #         "Cell Clusters Across Regions",
+    #         "Neighborhoods Across Regions",
+    #         "Cell Clusters Across Neighborhoods"
+    #     ]
+    # )
 
-def cell_clusters_across_neighborhoods(counts: pd.DataFrame):
-    df, metric = _format_inputs(counts, ["cluster", "neighborhood"])
-
-    st.dataframe(df)
-
-    # Plot the data
-    fig = px.bar(
-        df,
-        x="Neighborhood",
-        y=metric,
-        color="Cluster",
-        title="Cell Clusters Across Neighborhoods",
-        color_discrete_sequence=px.colors.qualitative.D3,
-        barmode=_barmode_selector()
-    )
-
-    _show_image_and_download_button(fig)

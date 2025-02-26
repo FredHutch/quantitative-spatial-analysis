@@ -14,8 +14,13 @@ def card_style(key: str):
 }}
 </style>
     """.format(key)
-    
+
     st.markdown(html, unsafe_allow_html=True)
+
+
+def linked_header(title: str):
+    st.write(f"#### {title}")
+    st.sidebar.markdown(f"[{title}](#{title.lower().replace(' ', '-')})")
 
 
 def card_content(title: str, content: List[str]):
