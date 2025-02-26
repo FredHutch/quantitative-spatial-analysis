@@ -3,3 +3,5 @@ streamlit
 cirro
 plotly
 scipy
+matplotlib
+seaborn
