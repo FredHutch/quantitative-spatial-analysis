@@ -150,10 +150,7 @@ def main():
     # Add the clustered data back to the original data
     for attr, kw in [
         ('obs', 'cluster'),
-        ('obsm', 'X_pca'),
         ('uns', 'pca'),
-        ('obsp', 'connectivities'),
-        ('obsp', 'distances'),
         ('uns', 'neighbors')
     ]:
         getattr(adata, attr)[kw] = getattr(norm_adata, attr)[kw]
