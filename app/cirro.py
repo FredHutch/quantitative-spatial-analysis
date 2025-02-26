@@ -44,7 +44,6 @@ def show_menu(
         selected_id = selection.query("selected")["id"].values[0]
 
         # Set the query parameter
-        st.query_params[query_key] = selected_id
         with st.spinner("Loading..."):
             set_query_param(query_key, selected_id)
 

@@ -24,6 +24,7 @@ class SpatialDataset:
 @dataclass
 class SpatialPoints:
     coords: pd.DataFrame
+    clusters: Optional[pd.Series]
     xcol: str
     ycol: str
     meta_cols: List[str]

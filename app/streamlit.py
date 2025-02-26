@@ -35,8 +35,8 @@ def set_query_param(
 
 def clear_query_param(
     key: str,
-    timeout = 5,
-    poll_interval = 0.1
+    timeout=5,
+    poll_interval=0.1
 ):
     """
     Clear the query param and also the session state.

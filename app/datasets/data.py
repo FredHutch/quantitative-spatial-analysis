@@ -157,7 +157,7 @@ class SpatialDataCatalog:
             "process-hutch-cellpose-1_0"
         ]:
             return self.get_points_stardist(dataset_id)
-        
+
     def get_points_xenium(self, dataset_id: str) -> SpatialPoints:
 
         # Get the Dataset object
@@ -192,6 +192,7 @@ class SpatialDataCatalog:
 
         return SpatialPoints(
             coords=coords,
+            clusters=None,
             xcol="x_centroid",
             ycol="y_centroid",
             meta_cols=["transcript_counts"],
@@ -206,7 +207,7 @@ class SpatialDataCatalog:
                 )
             )
         )
-    
+
     def get_points_stardist(self, dataset_id: str) -> SpatialPoints:
 
         # Get the Dataset object
@@ -219,12 +220,23 @@ class SpatialDataCatalog:
             .get_by_name("data/cell_measurements/spatial.csv")
             .read_csv(index_col=0)
         )
+
+        # Get the automated clusters
+        clusters = (
+            ds
+            .list_files()
+            .get_by_name("data/cell_clustering/leiden_clusters.csv")
+            .read_csv(index_col=0)
+            ["leiden"]
+            .astype(str)
+        )
         # Construct the URI for the folder
         folder = "data"
         folder_uri = str(Path(ds._get_detail().s3) / folder)
 
         return SpatialPoints(
             coords=coords,
+            clusters=clusters,
             xcol=coords.columns.values[0],
             ycol=coords.columns.values[1],
             meta_cols=[],

@@ -191,7 +191,12 @@ def _calc_plot_size(points: SpatialPoints) -> Tuple[int, int]:
     # Let the user modify the width
     width = st.number_input("Width", value=default_width, min_value=100, max_value=2000, step=100)
     height = int(width * y_range / x_range)
-    return width, height
+
+    # If the user wants to keep the fixed aspect ratio, the height picker is disabled
+    if st.checkbox(f"Fixed Aspect Ratio ({height:,}px)", value=True):
+        return width, height
+    else:
+        return width, st.number_input("Height", value=height)
 
 
 def back_button(session_key: Union[str, List[str]]):
@@ -231,18 +236,29 @@ def pick_region():
             points.coords,
             x=points.xcol,
             y=points.ycol,
+            color=(
+                None if points.clusters is None else
+                points.clusters.apply(str)
+            ),
             width=width,
             height=height,
-            opacity=st.number_input("Opacity", value=0.5, min_value=0.01, max_value=1., step=0.01),
-            color_discrete_sequence=["blue"]
+            opacity=st.number_input("Opacity", value=0.05, min_value=0.001, max_value=1., step=0.01),
+            labels={
+                points.xcol: "X Coordinate",
+                points.ycol: "Y Coordinate"
+            }
         )
         # Invert the y-axis
-        fig.update_yaxes(autorange="reversed")
+        if st.checkbox("Invert X-axis", value=False):
+            fig.update_xaxes(autorange='reversed')
+        if st.checkbox("Invert Y-axis", value=False):
+            fig.update_yaxes(autorange='reversed')
         # Display in streamlit and let the user select a region
         region = st.plotly_chart(
             fig,
             selection_mode="lasso",
-            on_select="rerun"
+            on_select="rerun",
+            use_container_width=False
         )
     st.write("Use the lasso tool to select a region of interest")
     n_points = len(region["selection"]["points"])
@@ -311,8 +327,12 @@ def show_region():
         y=points.ycol,
         width=width,
         height=height,
-        opacity=st.number_input("Opacity", value=0.5, min_value=0.01, max_value=1., step=0.01),
-        color_discrete_sequence=["blue"]
+        opacity=st.number_input("Opacity", value=0.01, min_value=0.001, max_value=1., step=0.01),
+        color_discrete_sequence=["blue"],
+        labels={
+            points.xcol: "X Coordinate",
+            points.ycol: "Y Coordinate",
+        }
     )
     # Invert the y-axis
     fig.update_yaxes(autorange="reversed")

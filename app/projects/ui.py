@@ -1,10 +1,14 @@
 import streamlit as st
 from time import time
 from app.cirro import select_project
-from app.streamlit import clear_query_param
+from app.streamlit import clear_query_param, get_query_param
 
 
 def main():
+
+    # If the project is set, rerun the app
+    if get_query_param("project") is not None:
+        st.rerun()
 
     st.write("#### Spatial Data Catalog")
 

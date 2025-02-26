@@ -1,6 +1,7 @@
 #!/usr/bin/env streamlit run
 from time import time
 import streamlit as st
+from app.streamlit import get_query_param
 
 
 def run():
@@ -16,7 +17,7 @@ def run():
     # If we are logged in, we can access the datasets and analyses pages
     if st.session_state.get("data_portal") is None:
         pages = [login]
-    elif st.session_state.get("project") is None:
+    elif get_query_param("project") is None:
         pages = [projects]
     else:
         pages = [datasets, analyses]
