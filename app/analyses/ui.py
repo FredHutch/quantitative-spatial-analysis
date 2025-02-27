@@ -324,6 +324,7 @@ def get_cluster_annotations(counts: pd.DataFrame):
             .assign(Percent=lambda d: 100 * d['count'] / d['count'].sum())
             .drop(columns='count')
             .sort_values(by="Percent", ascending=False)
+            .astype(str)
         )
 
     # Let the user provide a table
@@ -359,7 +360,8 @@ def get_cluster_annotations(counts: pd.DataFrame):
         st.session_state["cluster_annotations_working"],
         column_config=dict(
             Percent=st.column_config.NumberColumn(format="%.2f")
-        )
+        ),
+        hide_index=True
     )
 
     # Give the user a button to add a category
@@ -382,14 +384,14 @@ def get_cluster_annotations(counts: pd.DataFrame):
     if st.button("Clear Annotations"):
         st.session_state["cluster_annotations_working"] = (
             st.session_state["cluster_annotations_working"]
-            .reindex(columns=["Percent"])
+            .reindex(columns=["cluster", "Percent"])
         )
         st.rerun()
 
     # Let the user download the table
     st.download_button(
         "Download Annotations (CSV)",
-        edited_annot_df.to_csv(),
+        edited_annot_df.to_csv(index=None),
         file_name="cluster_annotations.csv",
         help="Download the cluster annotation table to reuse in future analysis"
     )
