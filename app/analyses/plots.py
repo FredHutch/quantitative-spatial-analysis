@@ -76,27 +76,36 @@ def _format_inputs(counts: pd.DataFrame, cnames: List[str]) -> Tuple[pd.DataFram
 
 
 def _chi2_test(df: pd.DataFrame, group1: str, group2: str):
+
+    # Sum up the counts across groups
+    vals = pd.crosstab(
+        df[group1],
+        df[group2],
+        df["Cell Count"],
+        aggfunc="sum"
+    ).T.fillna(0)
+
     # Compute the chi-squared test
-    chi2 = chi2_contingency(
-        pd.crosstab(
-            df[group1],
-            df[group2],
-            df["Cell Count"],
-            aggfunc="sum"
-        ).fillna(0)
-    )
+    chi2 = chi2_contingency(vals)
     formatted_pvalue = (
         f"{chi2.pvalue:.2E}"
         if chi2.pvalue < 0.01
         else
         f"{chi2.pvalue:.2f}"
     )
+
     st.write(
         f"""
         The p-value for the hypothesis that cells are distributed independently
         across the {group1} and {group2} categories is {formatted_pvalue}
         (chi-squared contingency test).
         """
+    )
+
+    st.download_button(
+        label="Download Counts (CSV)",
+        data=vals.to_csv(),
+        file_name=f"{group1}.{group2}.counts.csv"
     )
 
 
