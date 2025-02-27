@@ -427,7 +427,7 @@ def show_spatial(adata: AnnData):
     )
     sns.scatterplot(
         data=pd.concat([
-            to_plot.obs.reindex(columns=["x_centroid", "y_centroid"]),
+            pd.DataFrame(to_plot.obsm["spatial"], index=to_plot.obs_names, columns=["x_centroid", "y_centroid"]),
             to_plot.obsm["cluster_annotations"].astype(str)
         ], axis=1).sort_values(by=annotation),
         x="x_centroid",
