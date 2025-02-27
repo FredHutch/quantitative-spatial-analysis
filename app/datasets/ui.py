@@ -22,8 +22,6 @@ def get_catalog_cached() -> SpatialDataCatalog:
 
 def main():
 
-    st.write("#### Spatial Data Catalog")
-
     # If there is no dataset selected
     if get_query_param("dataset") is None:
         clear_query_param("pick_region")
@@ -75,7 +73,7 @@ def select_dataset():
         )
 
     # Show the back button
-    back_button("project")
+    back_button("project", label="Switch Project")
 
 
 def show_dataset():
@@ -115,7 +113,7 @@ def show_dataset():
 
     # If there are none, stop
     if len(analysis_outputs) == 0:
-        back_button("dataset")
+        back_button("dataset", label="Switch Dataset")
         return
 
     # Group the analysis outputs by type
@@ -138,7 +136,7 @@ def show_dataset():
                 dataset_buttons(catalog, dataset_id)
         html.card_style(card_key)
         ix += 1
-    back_button("dataset")
+    back_button("dataset", label="Switch Dataset")
 
 
 def dataset_buttons(catalog: SpatialDataCatalog, dataset_id: str):
@@ -199,8 +197,8 @@ def _calc_plot_size(points: SpatialPoints) -> Tuple[int, int]:
         return width, st.number_input("Height", value=height)
 
 
-def back_button(session_key: Union[str, List[str]]):
-    if st.button("Back", key=f"back-{session_key}"):
+def back_button(session_key: Union[str, List[str]], label="Back"):
+    if st.button(label, key=f"back-{session_key}"):
         if isinstance(session_key, list):
             for key in session_key:
                 clear_query_param(key)
@@ -224,7 +222,7 @@ def pick_region():
             points: SpatialPoints = catalog.get_points(dataset_id)
         except Exception as e:
             st.exception(e)
-            back_button("pick_region")
+            back_button("pick_region", label="Back to Dataset")
             return
 
     # Get the size of the plot to show
@@ -280,20 +278,20 @@ def pick_region():
                     )
                 except Exception as e:
                     st.exception(e)
-                    back_button("pick_region")
+                    back_button("pick_region", label="Back to Dataset")
                     return
                 if ds is not None:
                     try:
                         catalog.add_dataset(ds)
                     except Exception as e:
                         st.exception(e)
-                        back_button("pick_region")
+                        back_button("pick_region", label="Back to Dataset")
                         return
             sleep(1)
     else:
         st.warning("Enter a name for the region")
 
-    back_button("pick_region")
+    back_button("pick_region", label="Back to Dataset")
 
 
 def show_region():
@@ -312,7 +310,7 @@ def show_region():
             points: SpatialPoints = catalog.get_points(region.dataset.cirro_source.dataset)
         except Exception as e:
             st.exception(e)
-            back_button("show_region")
+            back_button("show_region", label="Back to Dataset")
             return
 
     # Get the size of the plot to show
@@ -353,7 +351,4 @@ def show_region():
     # Show the figure
     st.plotly_chart(fig, use_container_width=False)
 
-    back_button("show_region")
-
-
-main()
+    back_button("show_region", label="Back to Dataset")

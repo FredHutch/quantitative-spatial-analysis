@@ -10,8 +10,6 @@ def main():
     if get_query_param("project") is not None:
         st.rerun()
 
-    st.write("#### Spatial Data Catalog")
-
     # Make sure to clear the project-dependent query params
     clear_query_param("dataset")
     clear_query_param("pick_region")
@@ -30,5 +28,3 @@ def main():
 def update_refresh_time():
     st.session_state["refresh_time"] = time()
 
-
-main()

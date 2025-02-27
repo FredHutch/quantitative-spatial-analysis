@@ -89,6 +89,8 @@ def _cirro_login_sub(auth_io: StringIO, base_url: str):
     )
 
 
-cols = st.columns([1, 2 ,1])
-with cols[1]:
-    setup_data_portal()
+def main():
+
+    cols = st.columns([1, 2, 1])
+    with cols[1]:
+        setup_data_portal()

@@ -74,7 +74,7 @@ def select_dataset():
     )
 
     # Show the back button
-    back_button("project")
+    back_button("project", label="Switch Project")
 
 
 def update_refresh_time():
@@ -131,7 +131,7 @@ def show_dataset():
     # Show a display of the analysis results
     explore_analysis()
 
-    back_button("dataset")
+    back_button("dataset", label="Switch Dataset")
 
 
 def read_file(file_path: str, filetype="csv", **kwargs):
@@ -500,6 +500,3 @@ def compare_counts(counts: pd.DataFrame, annot_df: pd.DataFrame):
 
     # Let the user configure the plot
     plots.compare_counts(counts)
-
-
-main()
