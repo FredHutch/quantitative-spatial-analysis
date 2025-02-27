@@ -185,6 +185,9 @@ def plot_heatmap(counts: pd.DataFrame):
         labels=dict(
             x=selected_x,
             y=selected_y
+        ),
+        aspect=(
+            None if st.checkbox(label="Square Aspect", value=False) else "auto"
         )
     )
     fig.update_layout(

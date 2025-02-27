@@ -6,6 +6,7 @@ from app import html
 from app.datasets.ui import back_button
 import streamlit as st
 from app.analyses.data import get_catalog, SpatialAnalysisCatalog
+from app.analyses.plots import sort_table
 from app.analyses import plots
 from app.streamlit import get_query_param, clear_query_param
 from app.cirro import show_menu
@@ -229,7 +230,7 @@ def show_features_by_cluster():
         return
 
     # Make a long DataFrame for plotting
-    plot_df = (
+    plot_df: pd.DataFrame = (
         metrics
         .loc[(selected_clusters, slice(None))]
         .reindex(columns=selected_features)
@@ -249,13 +250,60 @@ def show_features_by_cluster():
         .reset_index()
     )
 
-    fig = px.scatter(
-        plot_df,
-        x="feature",
-        y="cluster",
-        size="mean",
-        size_max=10
+    # Use the values to sort the display
+    wide_df = plot_df.pivot(
+        index="cluster",
+        columns="feature",
+        values="mean"
     )
+    wide_df = sort_table(wide_df)
+    wide_df = sort_table(wide_df.T).T
+
+    if st.selectbox(
+        "Plot Type:",
+        options=["Bubble Plot", "Heatmap"],
+        index=1
+    ) == "Bubble Plot":
+
+        fig = px.scatter(
+            plot_df.assign(adj_mean=plot_df['mean']-plot_df['mean'].min()),
+            x="feature",
+            y="cluster",
+            color="mean",
+            size="adj_mean",
+            size_max=10,
+            category_orders=dict(
+                feature=wide_df.columns.values,
+                cluster=wide_df.index.values
+            )
+        )
+
+    else:
+
+        fig = px.imshow(
+            wide_df.values,
+            color_continuous_scale="Blues",
+            labels=dict(
+                x="Feature",
+                y="Cluster"
+            ),
+            aspect=(
+                None if st.checkbox(label="Square Aspect", value=False) else "auto"
+            )
+        )
+    fig.update_layout(
+        xaxis=dict(
+            tickmode="array",
+            tickvals=list(range(wide_df.shape[1])),
+            ticktext=wide_df.columns.values
+        ),
+        yaxis=dict(
+            tickmode="array",
+            tickvals=list(range(wide_df.shape[0])),
+            ticktext=wide_df.index.values
+        )
+    )
+
     st.plotly_chart(fig, use_container_width=False)
 
 
