@@ -1,7 +1,8 @@
 anndata
-streamlit
 cirro
+matplotlib
 plotly
 scipy
-matplotlib
+scipy
 seaborn
+streamlit

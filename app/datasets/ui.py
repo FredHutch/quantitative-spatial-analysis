@@ -248,7 +248,7 @@ def pick_region():
                 points.ycol: "Y Coordinate"
             }
         )
-        # Invert the y-axis
+        # Optionally invert the axes
         if st.checkbox("Invert X-axis", value=False):
             fig.update_xaxes(autorange='reversed')
         if st.checkbox("Invert Y-axis", value=False):
@@ -334,8 +334,11 @@ def show_region():
             points.ycol: "Y Coordinate",
         }
     )
-    # Invert the y-axis
-    fig.update_yaxes(autorange="reversed")
+    # Optionally invert the axes
+    if st.checkbox("Invert X-axis", value=False):
+        fig.update_xaxes(autorange='reversed')
+    if st.checkbox("Invert Y-axis", value=False):
+        fig.update_yaxes(autorange='reversed')
 
     # Add the region outline
     for shape in region.outline:
@@ -348,7 +351,7 @@ def show_region():
         )
 
     # Show the figure
-    st.plotly_chart(fig)
+    st.plotly_chart(fig, use_container_width=False)
 
     back_button("show_region")
 

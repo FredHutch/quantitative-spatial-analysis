@@ -2,8 +2,9 @@ from typing import List, Tuple
 import pandas as pd
 import streamlit as st
 import plotly.express as px
-from plotly.graph_objects import Figure
+import plotly.graph_objects as go
 from scipy.stats import chi2_contingency
+from scipy.cluster import hierarchy
 
 
 def _barmode_selector():
@@ -14,9 +15,9 @@ def _barmode_selector():
     )
 
 
-def _show_image_and_download_button(fig: Figure):
+def _show_image_and_download_button(fig: go.Figure):
 
-    st.plotly_chart(fig)
+    st.plotly_chart(fig, use_container_width=False)
 
     # Make a button to download the HTML image
     st.download_button(
@@ -137,6 +138,73 @@ def plot_bars(counts: pd.DataFrame):
         _chi2_test(df, selected_x, selected_color)
 
 
+def sort_table(df: pd.DataFrame) -> pd.DataFrame:
+    if df.shape[0] < 3:
+        return df
+
+    return df.loc[
+        df.index.values[
+            hierarchy.leaves_list(
+                hierarchy.linkage(
+                    df.values,
+                    method="ward",
+                    metric="euclidean"
+                )
+            )
+        ]
+    ]
+
+
+def plot_heatmap(counts: pd.DataFrame):
+    # Let the user select groupings for the X axis and Y axis, and the value used for the color
+    selected_x = st.selectbox("X-Axis", options=col_options(counts), index=col_options(counts).index("region"))
+    selected_y = st.selectbox("Y-Axis", options=col_options(counts), index=col_options(counts).index("neighborhood"))
+
+    if selected_y == selected_x:
+        st.write("Select different variables for X and Y")
+        return
+
+    # Format the data to display, and ask the user to select which one to use as the value
+    df, metric = _format_inputs(counts, [selected_x, selected_y])
+
+    # Make a wide DataFrame
+    wide_df = df.pivot_table(
+        index=selected_x,
+        columns=selected_y,
+        values=metric
+    ).fillna(0)
+
+    # Sort the columns and rows
+    wide_df = sort_table(wide_df)
+    wide_df = sort_table(wide_df.T).T
+
+    # Make the plot
+    fig = px.imshow(
+        wide_df.values,
+        color_continuous_scale="blues",
+        labels=dict(
+            x=selected_x,
+            y=selected_y
+        )
+    )
+    fig.update_layout(
+        xaxis=dict(
+            tickmode="array",
+            tickvals=list(range(wide_df.shape[1])),
+            ticktext=wide_df.columns.values
+        ),
+        yaxis=dict(
+            tickmode="array",
+            tickvals=list(range(wide_df.shape[0])),
+            ticktext=wide_df.index.values
+        )
+    )
+
+    _show_image_and_download_button(fig)
+
+    _chi2_test(df, selected_x, selected_y)
+
+
 def compare_counts(counts: pd.DataFrame):
 
     # Let the user filter based on groups
@@ -156,32 +224,11 @@ def compare_counts(counts: pd.DataFrame):
 
     plot_type = st.selectbox(
         label="Plot Type",
-        options=["Bars"]
+        options=["Bars", "Heatmap"]
     )
 
     if plot_type == "Bars":
         plot_bars(counts)
-
-    # # Get the number of cells, clusters, neighborhoods, and regions
-    # n_cells = counts["count"].sum()
-    # n_clusters = counts["cluster"].nunique()
-    # n_neighborhoods = counts["neighborhood"].nunique()
-    # n_regions = counts["region"].nunique()
-    # # Show the summary information
-    # st.write(f"""
-    #     - **Regions**: {n_regions:,}
-    #     - **Neighborhoods**: {n_neighborhoods:,} 
-    #     - **Clusters**: {n_clusters:,} 
-    #     - **Cells**: {n_cells:,}
-    # """)
-
-    # # Let the user select the display format
-    # plot_type = st.selectbox(
-    #     "Display",
-    #     [
-    #         "Cell Clusters Across Regions",
-    #         "Neighborhoods Across Regions",
-    #         "Cell Clusters Across Neighborhoods"
-    #     ]
-    # )
+    elif plot_type == "Heatmap":
+        plot_heatmap(counts)
 

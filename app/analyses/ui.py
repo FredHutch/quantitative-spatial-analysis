@@ -256,7 +256,7 @@ def show_features_by_cluster():
         size="mean",
         size_max=10
     )
-    st.plotly_chart(fig)
+    st.plotly_chart(fig, use_container_width=False)
 
 
 def get_cluster_annotations(counts: pd.DataFrame):
@@ -275,7 +275,6 @@ def get_cluster_annotations(counts: pd.DataFrame):
             .reset_index()
             .assign(Percent=lambda d: 100 * d['count'] / d['count'].sum())
             .drop(columns='count')
-            .set_index('cluster')
             .sort_values(by="Percent", ascending=False)
         )
 
