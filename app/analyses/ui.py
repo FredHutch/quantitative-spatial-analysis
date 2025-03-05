@@ -17,7 +17,6 @@ from time import time
 
 
 def main():
-    st.write("#### Spatial Data Analysis")
 
     # If there is no dataset selected
     if get_query_param("dataset") is None:
@@ -65,17 +64,8 @@ def select_dataset():
                 "Description": st.column_config.TextColumn(width="medium", disabled=True),
                 "Created": st.column_config.TextColumn(max_chars=14, disabled=True),
             },
-            "Select a dataset to view its contents"
+            "Select an analysis to view its contents"
         )
-
-    # Show the refresh button
-    st.button(
-        "Refresh",
-        on_click=update_refresh_time,
-    )
-
-    # Show the back button
-    back_button("project", label="Switch Project")
 
 
 def update_refresh_time():
@@ -85,7 +75,6 @@ def update_refresh_time():
 def get_catalog_cached() -> SpatialAnalysisCatalog:
     # Get the data catalog, respecting the refresh time
     with st.spinner("Loading catalog..."):
-
         return get_catalog(
             st.session_state.get("refresh_time"),
             get_query_param("project")

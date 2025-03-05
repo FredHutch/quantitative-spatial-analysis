@@ -72,9 +72,6 @@ def select_dataset():
             clear_params=["pick_region", "show_region"]
         )
 
-    # Show the back button
-    back_button("project", label="Switch Project")
-
 
 def show_dataset():
 

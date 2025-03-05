@@ -1,11 +1,17 @@
 #!/usr/bin/env streamlit run
 from time import time
 import streamlit as st
-from app.streamlit import get_query_param
 from app.login.ui import main as login
-from app.projects.ui import main as select_project
+from app.cirro import select_project
 from app.datasets.ui import main as show_dataset
 from app.analyses.ui import main as show_analysis
+import logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    handlers=[logging.StreamHandler()]
+)
+logger = logging.getLogger(__name__)
 
 
 def run():
@@ -21,17 +27,21 @@ def run():
     # If we are logged in, we can access the datasets and analyses pages
     if st.session_state.get("data_portal") is None:
         login()
-    elif get_query_param("project") is None:
-        select_project()
     else:
+        # Show the project selection menu
+        select_project()
+
         # Ask the user if they want to inspect a primary dataset or an analysis
         dataset_type = st.selectbox(
             "Dataset Type:",
             options=["Primary Dataset", "Combined Analysis"]
         )
+
         if dataset_type == "Primary Dataset":
+            logger.info("Showing primary datasets")
             show_dataset()
         else:
+            logger.info("Showing combined analyses")
             show_analysis()
 
 

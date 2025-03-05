@@ -104,30 +104,38 @@ def select_project() -> Optional[DataPortalProject]:
         st.exception(e)
         return
 
-    # Make a DataFrame with the project info
-    project_df = pd.DataFrame(
-        [
-            {
-                "name": p.name,
-                "id": p.id,
-                "description": p.description
-            }
-            for p in projects
-        ]
-    )
+    # Make a list of the available projects
+    project_list = [
+        f"{p.name} - {p.id}"
+        for p in projects
+    ]
     # Sort the projects by name
-    project_df.sort_values("name", inplace=True)
+    project_list.sort()
 
-    # Show a table with the projects that the user can select
-    show_menu(
-        query_key="project",
-        df=project_df,
-        column_order=["name", "description", "id"],
-        column_config={
-            "description": {"maxWidth": 300}
-        },
-        header_text="Select a project"
+    # Check and see if there is one preselected
+    if get_query_param("project") is None:
+        index = None
+    else:
+        project_id = get_query_param("project")
+        index = None
+        for i, v in enumerate(project_list):
+            if v.endswith(project_id):
+                index = i
+                break
+
+    # Let the user pick one
+    project = st.selectbox(
+        label="Select a project",
+        options=project_list,
+        index=index
     )
+
+    # If they pick one
+    if project is not None:
+        # Get the ID
+        project_id = project.rsplit(" - ", 1)[1]
+        # Set the ID
+        set_query_param("project", project_id)
 
 
 def cirro_dataset_link(dataset_id: str) -> str:
