@@ -178,8 +178,8 @@ def plot_heatmap(counts: pd.DataFrame):
 
     # Make a wide DataFrame
     wide_df = df.pivot_table(
-        index=selected_x,
-        columns=selected_y,
+        columns=selected_x,
+        index=selected_y,
         values=metric
     ).fillna(0)
 
@@ -193,10 +193,11 @@ def plot_heatmap(counts: pd.DataFrame):
         color_continuous_scale="blues",
         labels=dict(
             x=selected_x,
-            y=selected_y
+            y=selected_y,
+            color=metric
         ),
         aspect=(
-            None if st.checkbox(label="Square Aspect", value=False) else "auto"
+            None if st.checkbox(label="Square Aspect", value=False, key="compare-counts-square-aspect") else "auto"
         )
     )
     fig.update_layout(
@@ -243,4 +244,3 @@ def compare_counts(counts: pd.DataFrame):
         plot_bars(counts)
     elif plot_type == "Heatmap":
         plot_heatmap(counts)
-

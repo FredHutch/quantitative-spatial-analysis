@@ -278,7 +278,7 @@ def show_features_by_cluster():
                 color="Mean Abundance (Normalized)"
             ),
             aspect=(
-                None if st.checkbox(label="Square Aspect", value=False) else "auto"
+                None if st.checkbox(label="Square Aspect", value=False, key="show-features-square-aspect") else "auto"
             )
         )
     fig.update_layout(
@@ -434,8 +434,8 @@ def show_spatial(adata: AnnData):
     # Select the groups to display
     groups = st.multiselect(
         "Select Groups:",
-        options=labels.dropna().unique(),
-        default=labels.dropna().unique()
+        options=labels.dropna().drop_duplicates().sort_values().values,
+        default=labels.dropna().drop_duplicates().sort_values().values
     )
     if len(groups) == 0:
         st.write("Provide Groups to Display")
@@ -503,10 +503,10 @@ def explore_analysis():
     show_spatial(adata)
 
     # Let the user perform numeric comparisons
-    compare_counts(counts, cluster_annot_df)
+    compare_counts(counts, cluster_annot_df, neighborhood_annot_df)
 
 
-def compare_counts(counts: pd.DataFrame, annot_df: pd.DataFrame):
+def compare_counts(counts: pd.DataFrame, cluster_annot_df: pd.DataFrame, neighborhood_annot_df: pd.DataFrame):
     linked_header("Compare Cell Counts")
 
     # Merge the counts with the annotations
@@ -519,11 +519,18 @@ def compare_counts(counts: pd.DataFrame, annot_df: pd.DataFrame):
             }
         )
         .merge(
-            annot_df.drop(columns=["Percent"]).assign(
+            cluster_annot_df.drop(columns=["Percent"]).assign(
                 cluster=lambda d: d["cluster"].astype(str)
             ),
             left_on="cluster",
             right_on="cluster"
+        )
+        .merge(
+            neighborhood_annot_df.drop(columns=["Percent"]).assign(
+                neighborhood=lambda d: d["neighborhood"].astype(str)
+            ),
+            left_on="neighborhood",
+            right_on="neighborhood"
         )
     )
 
