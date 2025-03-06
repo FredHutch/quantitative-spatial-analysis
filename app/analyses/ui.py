@@ -296,18 +296,19 @@ def show_features_by_cluster():
     st.plotly_chart(fig, use_container_width=False)
 
 
-def get_cluster_annotations(counts: pd.DataFrame):
-    """Let the user supply a table of annotations, optionally merging clusters."""
+def get_annotations(counts: pd.DataFrame, annotation_type: str):
+    """Let the user supply a table of annotations."""
 
-    linked_header("Annotate Clusters")
+    linked_header(f"Annotate {annotation_type.title()}s")
 
     # If there are no annotations in the state, set them up
-    if st.session_state.get("cluster_annotations_working") is None:
+    session_state_kw = f"{annotation_type}_annotations_working"
+    if st.session_state.get(session_state_kw) is None:
 
         # Use the counts to show the user what proportion of cells belong to each cluster
-        st.session_state["cluster_annotations_working"] = (
+        st.session_state[session_state_kw] = (
             counts
-            .groupby("cluster")["count"]
+            .groupby(annotation_type)["count"]
             .sum()
             .reset_index()
             .assign(Percent=lambda d: 100 * d['count'] / d['count'].sum())
@@ -316,77 +317,57 @@ def get_cluster_annotations(counts: pd.DataFrame):
             .astype(str)
         )
 
+    # Present the annotations in two columns
+    col1, col2 = st.columns(2)
+
     # Let the user provide a table
-    user_provided = st.file_uploader("Upload Annotations:")
+    user_provided = col2.file_uploader(f"Upload {annotation_type.title()} Annotations:")
 
     if user_provided:
         # Read the table
         user_provided = pd.read_csv(user_provided).astype(str)
 
         # Add the user provided annotations
-        st.session_state["cluster_annotations_working"] = (
-            st.session_state["cluster_annotations_working"]
+        st.session_state[session_state_kw] = (
+            st.session_state[session_state_kw]
             .drop(
                 columns=[
-                    cname for cname in st.session_state["cluster_annotations_working"].columns
+                    cname for cname in st.session_state[session_state_kw].columns
                     if (
                         (cname in user_provided.columns)
                         and
-                        (cname not in ["Percent", "cluster"])
+                        (cname not in ["Percent", annotation_type])
                     )
                 ]
             )
             .merge(
                 user_provided.drop(columns=["Percent"] if "Percent" in user_provided.columns else []),
                 how="left",
-                left_on="cluster",
-                right_on="cluster"
+                left_on=annotation_type,
+                right_on=annotation_type
             )
         )
 
     # Show the table
-    edited_annot_df = st.data_editor(
-        st.session_state["cluster_annotations_working"],
+    col1.dataframe(
+        st.session_state[session_state_kw],
         column_config=dict(
             Percent=st.column_config.NumberColumn(format="%.2f")
         ),
-        hide_index=True
+        hide_index=True,
+        use_container_width=True
     )
 
-    # Give the user a button to add a category
-    new_cat_name = st.text_input(label="New Category Name:")
-    if st.button(
-        f"Add '{new_cat_name}'",
-        disabled=(
-            (len(new_cat_name) == 0)
-            or
-            (new_cat_name in edited_annot_df.columns.values)
-            or
-            new_cat_name in ['cluster', 'neighborhood']
-        )
-    ):
-        edited_annot_df = edited_annot_df.assign(**{new_cat_name: None})
-        st.session_state["cluster_annotations_working"] = edited_annot_df
-        st.rerun()
-
-    # Give the user a button to clear all annotations
-    if st.button("Clear Annotations"):
-        st.session_state["cluster_annotations_working"] = (
-            st.session_state["cluster_annotations_working"]
-            .reindex(columns=["cluster", "Percent"])
-        )
-        st.rerun()
-
     # Let the user download the table
-    st.download_button(
+    col2.download_button(
         "Download Annotations (CSV)",
-        edited_annot_df.to_csv(index=None),
-        file_name="cluster_annotations.csv",
-        help="Download the cluster annotation table to reuse in future analysis"
+        st.session_state[session_state_kw].to_csv(index=None),
+        file_name=f"{annotation_type}_annotations.csv",
+        help=f"Download the {annotation_type} annotation table to reuse in future analysis"
     )
 
     # Return the table
-    return edited_annot_df
+    return st.session_state[session_state_kw]
 
 
 def new_category_name(annot_df: pd.DataFrame) -> str:
@@ -397,19 +378,24 @@ def new_category_name(annot_df: pd.DataFrame) -> str:
     return f"Category {i}"
 
 
-def read_spatial(annot_df: pd.DataFrame) -> AnnData:
+def read_spatial(cluster_annot_df: pd.DataFrame, neighborhood_annot_df: pd.DataFrame) -> AnnData:
     """Read the spatial attributes as AnnData."""
 
     # Read the spatialdata object
     with st.spinner("Reading Spatial Coordinates"):
         adata: AnnData = read_file("combined/spatialdata.h5ad", filetype="h5ad")
 
-    # Merge in the cluster annotations
-    with st.spinner("Adding Cluster Annotations"):
-        adata.obsm["cluster_annotations"] = adata.obs.reindex(columns=["cluster", "neighborhood"]).astype(str)
-        adata.obsm["cluster_annotations"] = adata.obsm["cluster_annotations"].assign(**{
+    # Merge in the cluster and neighborhod annotations
+    with st.spinner("Adding Annotations"):
+        adata.obsm["cell_annotations"] = adata.obs.reindex(columns=["cluster", "neighborhood"]).astype(str)
+        adata.obsm["cell_annotations"] = adata.obsm["cell_annotations"].assign(**{
             annot_name: adata.obs["cluster"].apply(annot_values.get)
-            for annot_name, annot_values in annot_df.astype(str).set_index("cluster").items()
+            for annot_name, annot_values in cluster_annot_df.astype(str).set_index("cluster").items()
+            if annot_name not in ['Percent']
+        })
+        adata.obsm["cell_annotations"] = adata.obsm["cell_annotations"].assign(**{
+            annot_name: adata.obs["neighborhood"].apply(annot_values.get)
+            for annot_name, annot_values in neighborhood_annot_df.astype(str).set_index("neighborhood").items()
             if annot_name not in ['Percent']
         })
 
@@ -431,14 +417,14 @@ def show_spatial(adata: AnnData):
     # Select the annotation to display
     annotation = st.selectbox(
         label="Select Annotation:",
-        options=list(adata.obsm["cluster_annotations"].keys())
+        options=list(adata.obsm["cell_annotations"].keys())
     )
 
     # Subset the points to this particular region
     region_adata = adata[adata.obs["region"] == region]
 
     # Get the vector of labels
-    labels: pd.Series = region_adata.obsm["cluster_annotations"][annotation]
+    labels: pd.Series = region_adata.obsm["cell_annotations"][annotation]
 
     # If there are no labels
     if labels.dropna().shape[0] == 0:
@@ -467,7 +453,7 @@ def show_spatial(adata: AnnData):
     sns.scatterplot(
         data=pd.concat([
             pd.DataFrame(to_plot.obsm["spatial"], index=to_plot.obs_names, columns=["x_centroid", "y_centroid"]),
-            to_plot.obsm["cluster_annotations"].astype(str)
+            to_plot.obsm["cell_annotations"].astype(str)
         ], axis=1).sort_values(by=annotation),
         x="x_centroid",
         y="y_centroid",
@@ -506,14 +492,17 @@ def explore_analysis():
     counts = read_file("combined/counts.csv", filetype="csv")
 
     # Let the user annotate / merge clusters for analysis
-    annot_df = get_cluster_annotations(counts)
+    cluster_annot_df = get_annotations(counts, "cluster")
+
+    # Let the user annotate / merge neighborhoods for analysis
+    neighborhood_annot_df = get_annotations(counts, "neighborhood")
 
     # Show the user the spatial distribution of each cluster/neighborhood/annotation
-    adata = read_spatial(annot_df)
+    adata = read_spatial(cluster_annot_df, neighborhood_annot_df)
     show_spatial(adata)
 
     # Let the user perform numeric comparisons
-    compare_counts(counts, annot_df)
+    compare_counts(counts, cluster_annot_df)
 
 
 def compare_counts(counts: pd.DataFrame, annot_df: pd.DataFrame):
