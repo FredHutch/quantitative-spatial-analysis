@@ -274,7 +274,8 @@ def show_features_by_cluster():
             color_continuous_scale="Blues",
             labels=dict(
                 x="Feature",
-                y="Cluster"
+                y="Cluster",
+                color="Mean Abundance (Normalized)"
             ),
             aspect=(
                 None if st.checkbox(label="Square Aspect", value=False) else "auto"
