@@ -101,7 +101,7 @@ def write_all_tables(adata: ad.AnnData):
             adata.obsm["X_umap"],
             index=adata.obs_names,
             columns=[
-                f"PC {i+1}"
+                f"UMAP {i+1}"
                 for i in range(adata.obsm["X_umap"].shape[1])
             ]
         ),
