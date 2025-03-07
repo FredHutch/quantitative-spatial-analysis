@@ -62,8 +62,6 @@ def _format_inputs(counts: pd.DataFrame, cnames: List[str]) -> Tuple[pd.DataFram
         columns=dict(count="Cell Count")
     )
 
-    # assert False, df.query("neighborhood == '0'")
-
     # Let the user select the metric
     metric = st.selectbox(
         "Metric",

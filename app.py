@@ -28,8 +28,12 @@ def run():
     if st.session_state.get("data_portal") is None:
         login()
     else:
-        # Show the project selection menu
-        select_project()
+        # Get the project containing the data of interest
+        project = select_project()
+
+        # If there is no project, stop
+        if project is None:
+            return
 
         # Ask the user if they want to inspect a primary dataset or an analysis
         dataset_type = st.selectbox(
@@ -39,10 +43,10 @@ def run():
 
         if dataset_type == "Primary Dataset":
             logger.info("Showing primary datasets")
-            show_dataset()
+            show_dataset(project)
         else:
             logger.info("Showing combined analyses")
-            show_analysis()
+            show_analysis(project)
 
 
 def update_refresh_time():

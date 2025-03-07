@@ -1,4 +1,5 @@
 import io
+from cirro import DataPortalDataset, DataPortalProject
 from matplotlib import pyplot as plt
 import seaborn as sns
 from anndata import AnnData
@@ -9,40 +10,56 @@ from app.analyses.data import get_catalog, SpatialAnalysisCatalog
 from app.analyses.plots import sort_table
 from app.analyses import plots
 from app.streamlit import get_query_param, clear_query_param
-from app.cirro import show_menu
+from app.cirro import pick_dataset
 from app.html import linked_header
 import pandas as pd
 import plotly.express as px
 from time import time
+import logging
+
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    handlers=[logging.StreamHandler()]
+)
+logger = logging.getLogger(__name__)
 
 
-def main():
+def main(project: DataPortalProject):
 
     # If there is no dataset selected
     if get_query_param("dataset") is None:
+        logger.info("Clearing params from analyses.main")
         clear_query_param("pick_region")
         clear_query_param("show_region")
-        # Show the dataset selection menu
-        select_dataset()
 
-        # Show a button that lets the user kick off their own analysis
-        html.cirro_analysis_button(
-            "Run a new analysis",
-            None,
-            "process-hutch-quantitative-spatial-analysis-1_0"
-        )
+        # Show the dataset selection menu
+        dataset = select_dataset(project)
+
+        if dataset is None:
+
+            # Show a button that lets the user kick off their own analysis
+            html.cirro_analysis_button(
+                "Run a new analysis",
+                None,
+                "process-hutch-quantitative-spatial-analysis-1_0"
+            )
+
+        # Otherwise, redraw the page
+        else:
+            st.rerun()
 
     # Otherwise, show the dataset
     else:
-        show_dataset()
+        show_dataset(project)
 
 
-def select_dataset():
+def select_dataset(project: DataPortalProject) -> DataPortalDataset:
     """
     Show a menu that allows the user to select a dataset from the catalog.
     """
 
-    catalog = get_catalog_cached()
+    catalog = get_catalog_cached(project.id)
 
     # If there are no datasets available
     if catalog.analyses is None:
@@ -51,12 +68,15 @@ def select_dataset():
     elif catalog.analyses.shape[0] == 0:
         st.write("Data collection does not contain any recognized spatial analyses")
 
+    # If there is a dataset selected and it is part of the catalog
+    elif get_query_param("dataset") is not None and get_query_param("dataset") in catalog.df["id"].values:
+        return project.get_dataset_by_id(get_query_param("dataset"))
+
     else:
-        print(catalog.analyses)
 
         # Show the table of datasets which can be selected
-        show_menu(
-            "dataset",
+        return pick_dataset(
+            project,
             catalog.analyses,
             ["Name", "Created", "Description"],
             {
@@ -72,19 +92,19 @@ def update_refresh_time():
     st.session_state["refresh_time"] = time()
 
 
-def get_catalog_cached() -> SpatialAnalysisCatalog:
+def get_catalog_cached(project_id: str) -> SpatialAnalysisCatalog:
     # Get the data catalog, respecting the refresh time
     with st.spinner("Loading catalog..."):
         return get_catalog(
             st.session_state.get("refresh_time"),
-            get_query_param("project")
+            project_id
         )
 
 
-def show_dataset():
+def show_dataset(project: DataPortalProject):
 
     # Get the catalog
-    catalog = get_catalog_cached()
+    catalog = get_catalog_cached(project.id)
 
     # Get the dataset ID
     dataset_id = get_query_param("dataset")
@@ -92,10 +112,13 @@ def show_dataset():
     # If the dataset is not in the catalog for the selected project
     if catalog is None or dataset_id not in catalog.datasets:
         # Deselect the project and the dataset
-        clear_query_param("project")
+        logger.info("Clearing params from analyses.show_dataset")
         clear_query_param("dataset")
         st.rerun()
         return
+
+    # Let the user navigate back to the dataset selection
+    back_button("dataset", label="Switch Dataset")
 
     # Get the dataset
     dataset = catalog.datasets[dataset_id]
@@ -127,19 +150,21 @@ def show_dataset():
 def read_file(file_path: str, filetype="csv", **kwargs):
     """Read a file from the currently selected dataset."""
 
-    # Get the dataset ID
+    # Get the dataset and project ID
     dataset_id = get_query_param("dataset")
+    project_id = get_query_param("project")
     assert dataset_id is not None, "Cannot read file - no dataset selected"
+    assert project_id is not None, "Cannot read file - no project selected"
 
     # Read the file, caching on dataset ID and file path
-    return read_file_cached(dataset_id, file_path, filetype, **kwargs)
+    return read_file_cached(project_id, dataset_id, file_path, filetype, **kwargs)
 
 
 @st.cache_data
-def read_file_cached(dataset_id: str, file_path: str, filetype: str, **kwargs):
+def read_file_cached(project_id: str, dataset_id: str, file_path: str, filetype: str, **kwargs):
 
     # Get the catalog
-    catalog = get_catalog_cached()
+    catalog = get_catalog_cached(project_id)
 
     # Get the dataset
     dataset = catalog.datasets[dataset_id]
@@ -153,18 +178,20 @@ def read_file_cached(dataset_id: str, file_path: str, filetype: str, **kwargs):
 
 def has_file(file_path: str):
     """Check to see if the selected dataset conatins a particular file."""
-    # Get the dataset ID
+    # Get the dataset and project ID
     dataset_id = get_query_param("dataset")
+    project_id = get_query_param("project")
     assert dataset_id is not None, "Cannot read file - no dataset selected"
+    assert project_id is not None, "Cannot read file - no project selected"
 
-    return has_file_cached(dataset_id, file_path)
+    return has_file_cached(project_id, dataset_id, file_path)
 
 
 @st.cache_data
-def has_file_cached(dataset_id: str, file_path: str):
+def has_file_cached(project_id: str, dataset_id: str, file_path: str):
 
     # Get the catalog
-    catalog = get_catalog_cached()
+    catalog = get_catalog_cached(project_id)
 
     # Get the dataset
     dataset = catalog.datasets[dataset_id]

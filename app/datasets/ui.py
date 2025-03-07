@@ -1,53 +1,62 @@
 from time import sleep
 from typing import List, Tuple, Union
+from cirro import DataPortalDataset, DataPortalProject
 import pandas as pd
 import streamlit as st
 import plotly.express as px
 from app import html
-from app.cirro import save_region, show_menu
+from app.cirro import save_region, pick_dataset
 from app.datasets.data import get_catalog, SpatialDataCatalog
 from app.models.points import SpatialPoints, SpatialRegion
 from app.streamlit import set_query_param, clear_query_param, get_query_param
+import logging
+
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    handlers=[logging.StreamHandler()]
+)
+logger = logging.getLogger(__name__)
 
 
-def get_catalog_cached() -> SpatialDataCatalog:
+def get_catalog_cached(project_id: str) -> SpatialDataCatalog:
     # Get the data catalog, respecting the refresh time
     with st.spinner("Loading catalog..."):
 
         return get_catalog(
             st.session_state.get("refresh_time"),
-            get_query_param("project")
+            project_id
         )
 
 
-def main():
+def main(project: DataPortalProject):
 
-    # If there is no dataset selected
-    if get_query_param("dataset") is None:
-        clear_query_param("pick_region")
-        clear_query_param("show_region")
-        # Show the dataset selection menu
-        select_dataset()
+    # Get the dataset
+    dataset = select_dataset(project)
+
+    # If no dataset is selected, stop
+    if dataset is None:
+        return
 
     # If the user has selected a dataset to pick regions for, show that interface
-    elif get_query_param("pick_region") is not None:
-        pick_region()
+    if get_query_param("pick_region") is not None:
+        pick_region(project)
 
     # If the user has selected a region to display, show that region
     elif get_query_param("show_region") is not None:
-        show_region()
+        show_region(project)
 
     # Otherwise, show the dataset
     else:
-        show_dataset()
+        show_dataset(dataset)
 
 
-def select_dataset():
+def select_dataset(project: DataPortalProject) -> DataPortalDataset:
     """
     Show a menu that allows the user to select a dataset from the catalog.
     """
 
-    catalog = get_catalog_cached()
+    catalog = get_catalog_cached(project.id)
 
     # If there are no datasets available
     if catalog.df is None:
@@ -56,10 +65,14 @@ def select_dataset():
     elif catalog.df.shape[0] == 0:
         st.write("Data collection does not contain any recognized spatial datasets")
 
+    # If there is a dataset selected and it is part of the catalog
+    elif get_query_param("dataset") is not None and get_query_param("dataset") in catalog.df["id"].values:
+        return project.get_dataset_by_id(get_query_param("dataset"))
+
     else:
         # Show the table of datasets which can be selected
-        show_menu(
-            "dataset",
+        return pick_dataset(
+            project,
             catalog.df,
             ["Name", "Created", "Type", "Analysis Outputs"],
             {
@@ -73,10 +86,10 @@ def select_dataset():
         )
 
 
-def show_dataset():
+def show_dataset(project: DataPortalProject):
 
     # Get the catalog
-    catalog = get_catalog_cached()
+    catalog = get_catalog_cached(project.id)
 
     # Get the dataset ID
     dataset_id = get_query_param("dataset")
@@ -84,10 +97,14 @@ def show_dataset():
     # If the dataset is not in the catalog for the selected project
     if catalog is None or dataset_id not in catalog.datasets:
         # Deselect the project and the dataset
+        logger.info("Clearing params from datasets.show_dataset")
         clear_query_param("project")
         clear_query_param("dataset")
         st.rerun()
         return
+
+    # Let the user navigate back to the dataset selection
+    back_button("dataset", label="Switch Dataset")
 
     # Show the ingest dataset
     with st.container(key=dataset_id):
@@ -198,15 +215,16 @@ def back_button(session_key: Union[str, List[str]], label="Back"):
     if st.button(label, key=f"back-{session_key}"):
         if isinstance(session_key, list):
             for key in session_key:
+                logger.info("Clearing params from back_button")
                 clear_query_param(key)
         else:
             clear_query_param(session_key)
         st.rerun()
 
 
-def pick_region():
+def pick_region(project: DataPortalProject):
     # Get the catalog
-    catalog = get_catalog_cached()
+    catalog = get_catalog_cached(project.id)
     # Get the dataset ID which the region will be picked from
     dataset_id = get_query_param("pick_region")
 
@@ -291,9 +309,9 @@ def pick_region():
     back_button("pick_region", label="Back to Dataset")
 
 
-def show_region():
+def show_region(project: DataPortalProject):
     # Get the catalog
-    catalog = get_catalog_cached()
+    catalog = get_catalog_cached(project.id)
 
     # Get the region ID
     region_id = get_query_param("show_region")

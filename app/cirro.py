@@ -19,8 +19,8 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-def show_menu(
-    query_key: str,
+def pick_dataset(
+    project: DataPortalProject,
     df: pd.DataFrame,
     column_order: List[str],
     column_config: dict,
@@ -45,12 +45,14 @@ def show_menu(
 
         # Set the query parameter
         with st.spinner("Loading..."):
-            set_query_param(query_key, selected_id)
+            set_query_param("dataset", selected_id)
 
         for param in clear_params:
+            logger.info("Clearing params from pick_dataset")
             clear_query_param(param)
 
-        st.rerun()
+        # Return the project
+        return project.get_dataset_by_id(selected_id)
 
 
 def get_project() -> Optional[DataPortalProject]:
@@ -136,6 +138,9 @@ def select_project() -> Optional[DataPortalProject]:
         project_id = project.rsplit(" - ", 1)[1]
         # Set the ID
         set_query_param("project", project_id)
+
+        # Return the project
+        return portal.get_project_by_id(project_id)
 
 
 def cirro_dataset_link(dataset_id: str) -> str:

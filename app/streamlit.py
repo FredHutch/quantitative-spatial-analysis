@@ -64,4 +64,3 @@ def clear_query_param(
             raise TimeoutError(f"Timeout waiting to clearn query parameter: {key}")
     if key in st.session_state:
         del st.session_state[key]
-

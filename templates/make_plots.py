@@ -51,7 +51,7 @@ def plot_umap(adata: ad.AnnData):
             hue=color,
             palette="tab20",
             edgecolor=None,
-            s=1 / density,
+            s=10 / density,
             legend="auto" if show_legend else False
         )
         g.set_title(title)
