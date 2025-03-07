@@ -172,8 +172,15 @@ def read_file_cached(project_id: str, dataset_id: str, file_path: str, filetype:
     # Get the file
     file = dataset.list_files().get_by_name("data/" + file_path)
 
-    # Read the file
-    return getattr(file, f"read_{filetype}")(**kwargs)
+    # If the filetype is feather, read the object as bytes to a stream
+    # and then use the pandas read_feather method
+    if filetype == "feather":
+        return pd.read_feather(io.BytesIO(file._get()))
+
+    else:
+
+        # Otherwise use the file reader method
+        return getattr(file, f"read_{filetype}")(**kwargs)
 
 
 def has_file(file_path: str):
@@ -201,6 +208,153 @@ def has_file_cached(project_id: str, dataset_id: str, file_path: str):
         file.name == "data/" + file_path
         for file in dataset.list_files()
     ])
+
+
+def show_umap():
+    linked_header("UMAP Embedding")
+
+    # Check to see if the UMAP embedding has been computed
+    umap_fp = "combined/spatialdata.umap.feather"
+    if not has_file(umap_fp):
+        st.write("No UMAP coordinates found - please run the latest analysis version")
+        return
+
+    # Otherwise, read in the UMAP coordinates
+    with st.spinner("Reading Data..."):
+        umap = read_file(umap_fp, filetype="feather")
+
+    # Read in the annotations
+    annot_fp = "combined/spatialdata.annotations.feather"
+    if not has_file(annot_fp):
+        st.write("No cluster annotations found - please run the latest analysis version")
+        return
+
+    # Otherwise, read in the annotations
+    with st.spinner("Reading Data..."):
+        annot = read_file(annot_fp, filetype="feather")
+
+    # Merge the tables
+    umap = umap.merge(
+        annot.reindex(columns=['cluster', 'neighborhood', 'region']),
+        left_index=True,
+        right_index=True
+    )
+
+    # Let the user filter out cells based on their cluster, neighborhood, or region
+    display_clusters = st.multiselect(
+        "Show Clusters:",
+        options=umap["cluster"].unique(),
+        default=umap["cluster"].unique()
+    )
+    display_neighborhoods = st.multiselect(
+        "Show Neighborhoods:",
+        options=umap["neighborhood"].unique(),
+        default=umap["neighborhood"].unique()
+    )
+    display_regions = st.multiselect(
+        "Show Regions:",
+        options=umap["region"].unique(),
+        default=umap["region"].unique()
+    )
+
+    # Filter the data
+    umap = umap[
+        umap["cluster"].isin(display_clusters) &
+        umap["neighborhood"].isin(display_neighborhoods) &
+        umap["region"].isin(display_regions)
+    ]
+
+    # If there is no data left, stop here
+    if umap.shape[0] == 0:
+        st.write("Please select more data to plot")
+        return
+
+    cols_a = st.columns(3)
+
+    # Let the user pick the point size
+    size = cols_a[0].number_input(
+        "Point Size",
+        min_value=1,
+        max_value=20,
+        value=5,
+        step=1
+    )
+
+    # Let the user pick the width and height of the plot
+    width = cols_a[1].number_input(
+        "Figure Width",
+        min_value=1,
+        max_value=20,
+        value=10,
+        step=1
+    )
+    height = cols_a[2].number_input(
+        "Figure Height",
+        min_value=1,
+        max_value=20,
+        value=6,
+        step=1
+    )
+
+    cols_b = st.columns(3)
+
+    # Let the user decide which annotations to show
+    color = cols_b[0].selectbox(
+        "Color By:",
+        options=["cluster", "neighborhood", "region"],
+        index=0
+    )
+
+    # Let the user select how many points to show
+    subsample = cols_b[1].checkbox("Subsample Points", value=True)
+    if subsample:
+        subsample_size = cols_b[2].number_input(
+            "Subsample Size",
+            min_value=1,
+            max_value=umap.shape[0],
+            value=min(100000, umap.shape[0]),
+            step=1
+        )
+        umap = umap.sample(subsample_size)
+
+    with st.spinner("Plotting..."):
+        # Make a plot
+        fig, ax = plt.subplots(figsize=(width, height))
+        sns.scatterplot(
+            (
+                umap
+                .sort_values(by=color)
+                .assign(
+                    **{
+                        color: umap[color].astype(str)
+                    }
+                )
+            ),
+            x=umap.columns.values[0],
+            y=umap.columns.values[1],
+            hue=color,
+            s=size,
+            linewidth=0,
+            ax=ax
+        )
+        ax.set_xlabel(None)
+        ax.set_ylabel(None)
+        # Format the legend
+        ax.legend(title=color.title(), bbox_to_anchor=[1, 1], loc='upper left', markerscale=10/size)
+        # Remove the box around the plot
+        sns.despine(ax=ax, left=True, bottom=True)
+        # Remove the ticks
+        ax.set_xticks([])
+        ax.set_yticks([])
+        plt.tight_layout()
+        st.pyplot(fig, use_container_width=False)
+
+    with st.spinner("Rasterizing UMAP..."):
+        # Make a button to download as PNG
+        with io.BytesIO() as buf:
+            plt.savefig(buf, format="png")
+            plot_bytes = buf.getvalue()
+    st.download_button("Download PNG", data=plot_bytes, file_name="umap.png")
 
 
 def show_features_by_cluster():
@@ -512,6 +666,9 @@ def explore_analysis():
     """
     Provide a set of displays summarizing the analysis results for the dataset.
     """
+
+    # Display the UMAP embedding
+    show_umap()
 
     # Display the marker abundances by cluster
     show_features_by_cluster()
