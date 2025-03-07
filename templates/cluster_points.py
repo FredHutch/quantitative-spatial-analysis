@@ -18,6 +18,15 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
+def umap(adata: AnnData):
+    """
+    Build a UMAP projection
+    """
+    logger.info("Running UMAP")
+    sc.tl.umap(adata)
+    logger.info("Running UMAP - Done")
+
+
 def cluster(adata: AnnData):
     """
     Cluster the data with leiden clustering
@@ -147,9 +156,14 @@ def main():
     # Run clustering on the normalized data
     cluster(norm_adata)
 
+    # Build a UMAP projection on the normalized data
+    umap(norm_adata)
+
     # Add the clustered data back to the original data
     for attr, kw in [
         ('obs', 'cluster'),
+        ('obsm', 'X_umap'),
+        ('obsm', 'X_pca'),
         ('uns', 'pca'),
         ('uns', 'neighbors')
     ]:
