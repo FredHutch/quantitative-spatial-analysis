@@ -118,7 +118,7 @@ def show_dataset(project: DataPortalProject):
         return
 
     # Let the user navigate back to the dataset selection
-    back_button("dataset", label="Switch Dataset")
+    back_button("dataset", label="Switch Dataset", key="back-button-analysis-top")
 
     # Get the dataset
     dataset = catalog.datasets[dataset_id]
@@ -144,7 +144,7 @@ def show_dataset(project: DataPortalProject):
     # Show a display of the analysis results
     explore_analysis()
 
-    back_button("dataset", label="Switch Dataset")
+    back_button("dataset", label="Switch Dataset", key="back-button-analysis-bottom")
 
 
 def read_file(file_path: str, filetype="csv", **kwargs):

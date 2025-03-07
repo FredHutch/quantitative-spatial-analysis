@@ -104,7 +104,7 @@ def show_dataset(project: DataPortalProject):
         return
 
     # Let the user navigate back to the dataset selection
-    back_button("dataset", label="Switch Dataset")
+    back_button("dataset", label="Switch Dataset", key="back-button-dataset-top")
 
     # Show the ingest dataset
     with st.container(key=dataset_id):
@@ -127,7 +127,7 @@ def show_dataset(project: DataPortalProject):
 
     # If there are none, stop
     if len(analysis_outputs) == 0:
-        back_button("dataset", label="Switch Dataset")
+        back_button("dataset", label="Switch Dataset", key="back-button-dataset-bottom")
         return
 
     # Group the analysis outputs by type
@@ -150,7 +150,7 @@ def show_dataset(project: DataPortalProject):
                 dataset_buttons(catalog, dataset_id)
         html.card_style(card_key)
         ix += 1
-    back_button("dataset", label="Switch Dataset")
+    back_button("dataset", label="Switch Dataset", key="back-button-dataset-top-bottom")
 
 
 def dataset_buttons(catalog: SpatialDataCatalog, dataset_id: str):
@@ -211,8 +211,8 @@ def _calc_plot_size(points: SpatialPoints) -> Tuple[int, int]:
         return width, st.number_input("Height", value=height)
 
 
-def back_button(session_key: Union[str, List[str]], label="Back"):
-    if st.button(label, key=f"back-{session_key}"):
+def back_button(session_key: Union[str, List[str]], label="Back", key=None):
+    if st.button(label, key=f"back-{session_key}" if key is None else key):
         if isinstance(session_key, list):
             for key in session_key:
                 logger.info("Clearing params from back_button")
