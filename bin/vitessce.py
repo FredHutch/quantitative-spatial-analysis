@@ -39,7 +39,7 @@ def main():
         logger.info("Removing existing spatialdata.zarr folder")
         shutil.rmtree("spatialdata.zarr")
 
-    
+
 def read_spatial_datasets() -> Iterator[SpatialData]:
     for path in Path("spatialdata").glob("*.zarr.zip"):
         yield read_spatialdata_zarr(path)
@@ -89,11 +89,11 @@ def extract_regions(adata: ad.AnnData, sdata: SpatialData):
     overlap = sdata.tables['table'].obs_names.intersection(adata.obs_names)
 
     if len(overlap) == 0:
-        logger.info(f"No overlap of points with the annotated dataset")
+        logger.info("No overlap of points with the annotated dataset")
         return
-    
+
     logger.info(f"Found {len(overlap):,} points in the annotated dataset")
-    
+
     # Iterate over each region
     for region in adata.obs.reindex(index=overlap)["region"].unique():
         logger.info(f"Extracting region: {region}")
@@ -117,7 +117,7 @@ def extract_regions(adata: ad.AnnData, sdata: SpatialData):
         logger.info("Subsetting the spatial coordinates")
         region_sdata.shapes["centroids"] = region_sdata.shapes["centroids"].loc[region_points]
         # Write out the subsetted spatial data
-        zarr_path = f"regions/{region}/{region.replace(" ", "_").lower()}.zarr"
+        zarr_path = f"regions/{region}/{sanitize_filepath(region)}.zarr"
         logger.info(f"Writing region data to {zarr_path}")
         # If the zarr store already exists, remove it
         if Path(zarr_path).exists():
@@ -134,7 +134,16 @@ def extract_regions(adata: ad.AnnData, sdata: SpatialData):
                 init_gene=init_gene
             )
         )
-        
+
+
+def sanitize_filepath(fp: str) -> str:
+    fp = fp.lower()
+    for char in [" ", "-", "/", "\\", ":", "|", ";", "@"]:
+        fp = fp.replace(char, "_")
+    while "__" in fp:
+        fp = fp.replace("__", "_")
+    return fp
+
 
 def format_zarr_vitessce(zarr_path):
 
@@ -271,19 +280,19 @@ def write_vitessce_config(region: str, vt_kwargs: Dict[str, Any]):
 
 def format_vitessce_cell_types(
     region: str,
-    schema_version = "1.0.16",
-    obs_type = "cell",
-    obs_groups = "cluster",
-    init_gene = "CD45",
-    radius = 20,
-    description = "",
-    title_suffix = "Cell Types"
+    schema_version="1.0.16",
+    obs_type="cell",
+    obs_groups="cluster",
+    init_gene="CD45",
+    radius=20,
+    description="",
+    title_suffix="Cell Types"
 ):
     """
     Format a Vitessce configuration for the cell types in a region, similar to the Xenium viewer.
     """
 
-    zarr_path = region.replace(" ", "_").lower() + ".zarr.zip"
+    zarr_path = sanitize_filepath(region) + ".zarr.zip"
 
     return {
         "version": schema_version,
