@@ -626,7 +626,7 @@ def show_spatial(adata: AnnData):
     to_plot = region_adata[labels.isin(groups), :]
 
     # Make some columns for the display options
-    cols = st.columns(3)
+    cols = st.columns(4)
 
     # Make a plot
     fig, ax = plt.subplots(
@@ -647,9 +647,9 @@ def show_spatial(adata: AnnData):
         s=cols[2].number_input("Point Size", min_value=0.1, max_value=20., value=1.0),
         ax=ax
     )
-    if st.checkbox("Invert X axis"):
+    if cols[3].checkbox("Invert X axis"):
         ax.invert_xaxis()
-    if st.checkbox("Invert Y axis"):
+    if cols[3].checkbox("Invert Y axis"):
         ax.invert_yaxis()
     lgnd = plt.legend(bbox_to_anchor=[1, 1])
     for handle in lgnd.legend_handles:
