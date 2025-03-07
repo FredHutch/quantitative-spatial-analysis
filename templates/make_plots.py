@@ -22,10 +22,59 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-def plot_spatial():
-    # Read in the spatial dataset
-    logger.info("Reading the spatial dataset")
-    adata: ad.AnnData = ad.read_h5ad("spatialdata.h5ad")
+def plot_umap(adata: ad.AnnData):
+
+    # Get the UMAP coordinates
+    plot_df = pd.DataFrame(
+        adata.obsm["X_umap"],
+        index=adata.obs_names,
+        columns=[f"UMAP {i+1}" for i in range(adata.obsm["X_umap"].shape[1])]
+    )
+
+    # Add the cell annotations
+    plot_df = plot_df.merge(adata.obs, left_index=True, right_index=True)
+
+    # Calculate the average density of points
+    density = calculate_density(plot_df, "UMAP 1", "UMAP 2")
+
+    # Make the plot coloring by cluster, neighborhood, and region
+    for title, color in zip(
+        ["Cell Type", "Neighborhood", "Region"],
+        ["cluster", "neighborhood", "region"]
+    ):
+        # Only show the legend if there are < 20 colors
+        show_legend = plot_df[color].nunique() < 20
+        g = sns.scatterplot(
+            data=plot_df,
+            x="UMAP 1",
+            y="UMAP 2",
+            hue=color,
+            palette="tab20",
+            edgecolor=None,
+            s=1 / density,
+            legend="auto" if show_legend else False
+        )
+        g.set_title(title)
+        if show_legend:
+            # Put the legend outside the plot
+            plt.legend(title=title, bbox_to_anchor=(1, 1))
+        plt.tight_layout()
+        plt.savefig(f"plots/umap_{color}.png")
+        plt.savefig(f"plots/umap_{color}.pdf")
+        plt.close()
+
+
+def calculate_density(plot_df, x_cname, y_cname):
+    # Calculate the average density of points
+    x_min, x_max = plot_df[x_cname].min(), plot_df[x_cname].max()
+    y_min, y_max = plot_df[y_cname].min(), plot_df[y_cname].max()
+    x_range = x_max - x_min
+    y_range = y_max - y_min
+    area = x_range * y_range
+    return len(plot_df) / area
+
+
+def plot_spatial(adata: ad.AnnData):
 
     # For each region, make a side-by-side plot of the spatial coordinates
     # colored by the cluster, and by the neighborhood
@@ -50,12 +99,7 @@ def plot_spatial():
         logger.info(f"Plotting {len(plot_df):,} cells")
 
         # Calculate the average density of points
-        x_min, x_max = plot_df["x"].min(), plot_df["x"].max()
-        y_min, y_max = plot_df["y"].min(), plot_df["y"].max()
-        x_range = x_max - x_min
-        y_range = y_max - y_min
-        area = x_range * y_range
-        density = len(plot_df) / area
+        density = calculate_density(plot_df, "x", "y")
 
         fig, axs = plt.subplots(1, 2, figsize=(12, 6))
 
@@ -199,8 +243,15 @@ def plot_counts():
 
 def main():
 
+    # Read in the spatial dataset
+    logger.info("Reading the spatial dataset")
+    adata: ad.AnnData = ad.read_h5ad("spatialdata.h5ad")
+
+    # Plot the UMAP
+    plot_umap(adata)
+
     # Plot the spatial coordinates
-    plot_spatial()
+    plot_spatial(adata)
 
     # Plot the summary metrics
     plot_counts()

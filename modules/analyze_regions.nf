@@ -19,6 +19,8 @@ process cluster_points {
 
 process neighborhood_analysis {
     publishDir "${params.outdir}/combined", mode: 'copy', overwrite: true, pattern: "*.h5ad"
+    publishDir "${params.outdir}/combined", mode: 'copy', overwrite: true, pattern: "*.csv.gz"
+    publishDir "${params.outdir}/combined", mode: 'copy', overwrite: true, pattern: "*.feather"
     publishDir "${params.outdir}", mode: 'copy', overwrite: true, pattern: "**.txt"
 
     input:
@@ -26,6 +28,8 @@ process neighborhood_analysis {
 
     output:
     path "spatialdata.h5ad", emit: anndata
+    path "*.csv.gz", emit: csv
+    path "*.feather", emit: feather
     path "logs/*", emit: logs
 
     script:
