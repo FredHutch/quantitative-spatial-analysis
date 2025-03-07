@@ -653,6 +653,7 @@ def show_spatial(adata: AnnData):
         handle.set_markersize(6.0)
     plt.xlabel("X Coordinate")
     plt.ylabel("Y Coordinate")
+    plt.title(region)
     plt.tight_layout()
     st.pyplot(fig, use_container_width=False)
     # Let the user download the image
