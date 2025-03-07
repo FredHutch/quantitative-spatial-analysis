@@ -625,11 +625,14 @@ def show_spatial(adata: AnnData):
     # Subset to the selected points
     to_plot = region_adata[labels.isin(groups), :]
 
+    # Make some columns for the display options
+    cols = st.columns(3)
+
     # Make a plot
     fig, ax = plt.subplots(
         figsize=(
-            st.number_input("Figure Width", min_value=1., max_value=20., value=5., step=0.1),
-            st.number_input("Figure Height", min_value=1., max_value=20., value=3., step=0.1)
+            cols[0].number_input("Figure Width", min_value=1., max_value=20., value=5., step=0.1),
+            cols[1].number_input("Figure Height", min_value=1., max_value=20., value=3., step=0.1)
         )
     )
     sns.scatterplot(
@@ -641,7 +644,7 @@ def show_spatial(adata: AnnData):
         y="y_centroid",
         hue=annotation,
         linewidth=0,
-        s=st.number_input("Point Size", min_value=0.1, max_value=20., value=1.0),
+        s=cols[2].number_input("Point Size", min_value=0.1, max_value=20., value=1.0),
         ax=ax
     )
     if st.checkbox("Invert X axis"):
