@@ -74,9 +74,52 @@ def main():
     adata.obs["neighborhood"] = labelskm
 
     # Save the results
-    logger.info("Writing the results")
+    logger.info("Writing the results - h5ad")
     adata.write("spatialdata.h5ad")
+    write_all_tables(adata)
     logger.info("Done")
+
+
+def write_all_tables(adata: ad.AnnData):
+    logger.info("Writing the results - CSV")
+
+    write_table(adata.to_df(), "spatialdata.measurements")
+    write_table(adata.obs, "spatialdata.annotations")
+    write_table(
+        pd.DataFrame(
+            adata.obsm["X_pca"],
+            index=adata.obs_names,
+            columns=[
+                f"PC {i+1}"
+                for i in range(adata.obsm["X_pca"].shape[1])
+            ]
+        ),
+        "spatialdata.pca"
+    )
+    write_table(
+        pd.DataFrame(
+            adata.obsm["X_umap"],
+            index=adata.obs_names,
+            columns=[
+                f"PC {i+1}"
+                for i in range(adata.obsm["X_umap"].shape[1])
+            ]
+        ),
+        "spatialdata.umap"
+    )
+    write_table(
+        pd.DataFrame(
+            adata.obsm["spatial"],
+            index=adata.obs_names
+        ),
+        "spatialdata.coordinates"
+    )
+
+
+def write_table(df: pd.DataFrame, fp: str):
+    logger.info(f"Writing {fp} - {df.shape[0]:,} rows and {df.shape[1]:,} columns")
+    df.to_csv(fp + ".csv.gz")
+    df.to_feather(fp + ".feather")
 
 
 if __name__ == "__main__":
