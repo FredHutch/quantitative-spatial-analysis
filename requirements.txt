@@ -3,6 +3,5 @@ cirro
 matplotlib
 plotly
 scipy
-scipy
 seaborn
 streamlit
