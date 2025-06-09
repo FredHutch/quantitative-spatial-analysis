@@ -1,3 +1,4 @@
+import io
 from pathlib import Path
 
 from app.cirro import get_project, list_datasets, parse_region
@@ -49,6 +50,7 @@ class SpatialDataCatalog:
     filter_types = [
         "images",
         "xenium",
+        "ingest_spaceranger",  # Visium
         "process-hutch-qupath-stardist-1_0",
         "process-hutch-cellpose-1_0"
     ]
@@ -66,6 +68,11 @@ class SpatialDataCatalog:
 
     # Dataframe of the catalog
     df: pd.DataFrame
+
+    # Internal constants
+    _visium_clusters_suffix = "/analysis/clustering/gene_expression_graphclust/clusters.csv"
+    _visium_coordinates_suffix = "/spatial/tissue_positions.parquet"
+
 
     def __init__(self):
         # Get all datasets of the expected types, and group them by the original ingest dataset
@@ -142,7 +149,7 @@ class SpatialDataCatalog:
         else:
             return _self.datasets[dataset_id].process_id
 
-    def get_points(self, dataset_id: str) -> SpatialPoints:
+    def get_points(self, dataset_id: str, path=None) -> SpatialPoints:
         """
         Get the spatial coordinates of the points in the dataset
         """
@@ -152,6 +159,21 @@ class SpatialDataCatalog:
             raise ValueError("Images do not have points")
         elif process_id == "xenium":
             return self.get_points_xenium(dataset_id)
+        elif process_id == "ingest_spaceranger":
+
+            # For Visium datasets, the user must select which resolution to use
+            if path is not None:
+                # If a path is provided, use it directly
+                points_folder = path
+            else:
+                # Otherwise, ask the user to select the resolution
+                points_folder = self.select_visium_resolution(dataset_id)
+            if points_folder is None:
+                raise ValueError("No spatial coordinates selected")
+
+            # Get the points for the selected resolution
+            return self.get_points_visium(dataset_id, points_folder)
+
         elif process_id in [
             "process-hutch-qupath-stardist-1_0",
             "process-hutch-cellpose-1_0"
@@ -204,6 +226,95 @@ class SpatialDataCatalog:
                     project=ds.project_id,
                     dataset=dataset_id,
                     path=folder
+                )
+            )
+        )
+
+    def select_visium_resolution(self, dataset_id: str) -> str:
+
+        # Get the Dataset object
+        ds = self.datasets[dataset_id]
+
+        # The user must pick which level of binning to use
+        points_options = ds.list_files().filter_by_pattern(f"*{self._visium_coordinates_suffix}")
+
+        if len(points_options) == 0:
+            raise Exception("No spatial coordinates found in the dataset")
+
+        elif len(points_options) == 1:
+            # If there is only one option, use it
+            points_file = points_options[0]
+            points_folder = points_file.name[:-len(self._visium_coordinates_suffix)]
+        else:
+            # If there are multiple options, ask the user to select one
+            points_folder = st.selectbox(
+                "Select spatial coordinates to use",
+                [file.name[:-len(self._visium_coordinates_suffix)] for file in points_options],
+                index=None
+            )
+            if points_folder is None:
+                raise ValueError("No spatial coordinates selected")
+        return points_folder
+
+    def get_points_visium(self, dataset_id: str, points_folder: str) -> SpatialPoints:
+
+        # Get the Dataset object
+        ds = self.datasets[dataset_id]
+
+        points_file = points_folder + self._visium_coordinates_suffix
+
+        # Get the spatial coordinates
+        coords = (
+            pd.read_parquet(
+                io.BytesIO(
+                    ds
+                    .list_files()
+                    .get_by_name(points_file)
+                    ._get()
+                )
+            )
+            .set_index("barcode")
+            .query("in_tissue == 1")
+        )
+
+        # Get the automated clusters
+        cluster_file = points_folder + self._visium_clusters_suffix
+
+        if cluster_file not in [_f.name for _f in ds.list_files()]:
+            clusters = pd.Series(
+                ["none" for _ in range(coords.shape[0])],
+                index=coords.index,
+                name="Cluster"
+            )
+        else:
+            # If the clusters file exists, read it
+            clusters = (
+                ds
+                .list_files()
+                .get_by_name(cluster_file)
+                .read_csv(index_col=0)
+                ["Cluster"]
+                .astype(str)
+                .reindex(coords.index)
+            )
+
+        # Construct the URI for the folder
+        folder_uri = str(Path(ds._get_detail().s3) / points_folder)
+
+        return SpatialPoints(
+            coords=coords,
+            clusters=clusters,
+            xcol="pxl_col_in_fullres",
+            ycol="pxl_row_in_fullres",
+            meta_cols=[],
+            dataset=SpatialDataset(
+                type="visium",
+                uri=folder_uri,
+                cirro_source=CirroDataset(
+                    domain=st.session_state["domain"],
+                    project=ds.project_id,
+                    dataset=dataset_id,
+                    path=points_folder
                 )
             )
         )

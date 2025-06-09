@@ -182,6 +182,13 @@ def dataset_buttons(catalog: SpatialDataCatalog, dataset_id: str):
             set_query_param("pick_region", dataset_id)
             st.rerun()
 
+    # Visium: Pick Region
+    elif process_id == "ingest_spaceranger":
+        if st.button("Pick Region", key=f"pick-regions-{dataset_id}"):
+            set_query_param("pick_region", dataset_id)
+            st.rerun()
+
+    # Region: Show Region
     elif process_id == "region":
         if st.button("Show Region", key=f"show-region-{dataset_id}"):
             set_query_param("show_region", dataset_id)
@@ -322,7 +329,10 @@ def show_region(project: DataPortalProject):
     # Get the coordinates of points for this dataset
     with st.spinner("Loading points..."):
         try:
-            points: SpatialPoints = catalog.get_points(region.dataset.cirro_source.dataset)
+            points: SpatialPoints = catalog.get_points(
+                region.dataset.cirro_source.dataset,
+                path=region.dataset.cirro_source.path
+            )
         except Exception as e:
             st.exception(e)
             back_button("show_region", label="Back to Dataset")
