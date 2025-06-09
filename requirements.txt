@@ -1,7 +1,0 @@
-anndata
-cirro
-matplotlib
-plotly
-scipy
-seaborn
-streamlit

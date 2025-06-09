@@ -29,11 +29,28 @@ The goal of this project is to allow users to:
 The interactive process of region selection can be performed with the [Streamlit](https://streamlit.io/)
 app defined by `app.py` and `app/`.
 
-First install prerequisites with `pip install -r requirements.txt`, and then run the app with
+### Development
+
+To make modifications to the app, clone the GitHub repo and launch within your
+local system. With `uv` installed:
+
+1. Install prerequisites with `uv sync --locked`
+2. Run the app with `uv run streamlit run app.py`
+
+Modifications to the app's code made locally can be automatically applied
+to the running process, with no need to relaunch the process.
+
+### Deployment
+
+A pre-built version of the app can be launched using Docker:
 
 ```shell
-streamlit run app.py
+docker run -p 8000:8000 quay.io/hdc-workflows/quantitative-spatial-analysis
 ```
+
+By default the `latest` tag will be used. Specific versions of the code
+are indicated by short commit hash (e.g. `quay.io/hdc-workflows/quantitative-spatial-analysis:21864a8`).
+The full list of available tags can be found here: [https://quay.io/repository/hdc-workflows/quantitative-spatial-analysis?tab=tags](https://quay.io/repository/hdc-workflows/quantitative-spatial-analysis?tab=tags).
 
 ### Region Definition
 
