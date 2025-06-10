@@ -78,6 +78,7 @@ workflow analyze_regions {
         // Branch based on the type of the dataset
         .branch {
             xenium: it[1] == "xenium"
+            visium: it[1] == "visium"
             stardist: it[1] == "stardist"
             other: true
         }
@@ -87,7 +88,11 @@ workflow analyze_regions {
     source_datasets.other.map { error "Unsupported dataset type: ${it[1]}" }
 
     // Extract the points encoded by each region
-    extract_regions(source_datasets.xenium, source_datasets.stardist)
+    extract_regions(
+        source_datasets.xenium,
+        source_datasets.visium,
+        source_datasets.stardist
+    )
 
     // Run clustering on the extracted points
     cluster_points(extract_regions.out.anndata)
