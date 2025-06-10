@@ -1,0 +1,20 @@
+version: '3.3'
+services:
+  quantitative-spatial-analysis:
+    image: sc-registry.fredhutch.org/quantitative-spatial-analysis:latest
+    networks:
+      - sc-swarm-net
+    deploy:
+      restart_policy:
+        condition: on-failure
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.quantitative-spatial-analysis.rule=Host(`quantitative-spatial-analysis.fredhutch.org`)"
+        - "traefik.http.routers.quantitative-spatial-analysis-secured.rule=Host(`quantitative-spatial-analysis.fredhutch.org`)"
+        - "traefik.http.routers.quantitative-spatial-analysis.entrypoints=web,web-secured"
+        - "traefik.http.services.quantitative-spatial-analysis.loadbalancer.server.port=8000" # it seems you always need to give traefik a port so it 'notices' the service
+        - "traefik.http.routers.quantitative-spatial-analysis.tls=true"
+
+networks:
+  sc-swarm-net:
+    external: true
