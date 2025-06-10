@@ -55,10 +55,6 @@ def format_anndata() -> AnnData:
     logger.info("Log transforming")
     sc.pp.log1p(adata)
 
-    # Sort the genes by euclidean distance
-    logger.info("Sorting genes by euclidean distance")
-    adata = adata[:, sort_index(adata.to_df().T)]
-
     # Use the .uns to record information about the dataset
     adata.uns["spatial_dataset"] = {
         "type": "visium",
@@ -72,16 +68,6 @@ def format_anndata() -> AnnData:
     adata.obsm["spatial"] = adata.obs[["pxl_col_in_fullres", "pxl_row_in_fullres"]].values
 
     return adata
-
-
-def sort_index(df: pd.DataFrame) -> pd.Index:
-    return hierarchy.leaves_list(
-        hierarchy.linkage(
-            df.values,
-            method="ward",
-            metric="euclidean"
-        )
-    )
 
 
 def format_spatial(
