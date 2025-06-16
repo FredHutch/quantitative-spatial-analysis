@@ -323,7 +323,7 @@ def format_vitessce_cell_types(
                             "obsType": obs_type
                         },
                         "options": {
-                            "path": f'images/image'
+                            "path": 'images/image'
                         }
                     },
                     {
@@ -343,7 +343,7 @@ def format_vitessce_cell_types(
                             "obsType": obs_type
                         },
                         "options": {
-                            "path": f"shapes/centroids",
+                            "path": "shapes/centroids",
                             "tablePath": "tables/table"
                         }
                     },
