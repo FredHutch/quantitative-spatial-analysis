@@ -25,9 +25,16 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
+def _log_obj(obj):
+    for line in str(obj).split("\\n"):
+        logger.info(line)
+
+
 def main():
     # Read in the dataset which has been annotated by region, cluster, and neighborhood
+    logger.info("Reading the annotated dataset from spatialdata.h5ad")
     adata = ad.read_h5ad("spatialdata.h5ad")
+    _log_obj(adata)
 
     # For each of the spatial datasets which were provided as inputs, generate outputs
     # for each of the regions that they contain
@@ -41,8 +48,13 @@ def main():
 
 
 def read_spatial_datasets() -> Iterator[SpatialData]:
+    n = 0
     for path in Path("spatialdata").glob("*.zarr.zip"):
         yield read_spatialdata_zarr(path)
+        n += 1
+    if n == 0:
+        raise ValueError("No spatial datasets found in spatialdata/*.zarr.zip")
+    logger.info(f"Read {n} spatial datasets from spatialdata/*.zarr.zip")
 
 
 def read_spatialdata_zarr(path: Path) -> SpatialData:
