@@ -53,7 +53,7 @@ def format_anndata() -> AnnData:
     adata.obs = obs.reindex(index=adata.obs_names)
 
     # Remove any cells with fewer than params.min_reads_per_cell counts
-    min_reads_per_cell = int("10") # noqa # FIXME
+    min_reads_per_cell = int("${params.min_reads_per_cell}") # noqa
     logger.info(f"Filtering cells with fewer than {min_reads_per_cell:,} reads")
     n_filtered_cells = sum(adata.X.sum(axis=1) < min_reads_per_cell)
     if n_filtered_cells > 0:
