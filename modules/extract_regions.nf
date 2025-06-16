@@ -89,8 +89,8 @@ workflow extract_regions {
 
     emit:
     anndata = join_regions.out
-    region_defs = extract_regions_xenium.out.region_json.mix(extract_regions_stardist.out.region_json)
-    spatialdata = extract_regions_xenium.out.spatialdata.mix(extract_regions_stardist.out.spatialdata)
+    region_defs = extract_regions_xenium.out.region_json.mix(extract_regions_visium.out.region_json).mix(extract_regions_stardist.out.region_json)
+    spatialdata = extract_regions_xenium.out.spatialdata.mix(extract_regions_visium.out.spatialdata).mix(extract_regions_stardist.out.spatialdata)
 }
 
 
