@@ -43,11 +43,20 @@ def format_anndata() -> AnnData:
     # Attach the observation metadata
     adata.obs = obs.reindex(index=adata.obs_names)
 
-    # Remove any cells with zero counts
-    n_zeros = sum(adata.X.sum(axis=1) == 0)
-    if n_zeros > 0:
-        logger.info(f"Removing {n_zeros} cells with zero counts")
-        adata = adata[adata.X.sum(axis=1) > 0]
+    # Remove any cells with fewer than params.min_reads_per_cell counts
+    min_reads_per_cell = int("10") # noqa # FIXME
+    logger.info(f"Filtering cells with fewer than {min_reads_per_cell:,} reads")
+    n_filtered_cells = sum(adata.X.sum(axis=1) < min_reads_per_cell)
+    if n_filtered_cells > 0:
+        logger.info(f"Removing {n_filtered_cells} cells with < {min_reads_per_cell:,} reads")
+        adata = adata[adata.X.sum(axis=1) >= min_reads_per_cell]
+
+    # Remove any genes with zero counts
+    logger.info("Filtering genes with zero counts")
+    n_filtered_genes = (adata.X.sum(axis=0) == 0).sum()
+    if n_filtered_genes > 0:
+        logger.info(f"Removing {n_filtered_genes} genes with zero counts")
+        adata = adata[:, adata.X.sum(axis=0) > 0]
 
     logger.info("Preprocessing data")
     logger.info("Normalizing total counts")
