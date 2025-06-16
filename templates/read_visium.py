@@ -37,6 +37,15 @@ def format_anndata() -> AnnData:
     obs = pd.read_parquet('visium/spatial/tissue_positions.parquet')
     obs = obs.set_index('barcode', drop=False)
 
+    # Read in the scaling factors
+    scaling_factors = json.load(open('visium/spatial/scalefactors_json.json'))
+
+    # Apply the scaling factors to the coordinates
+    obs = obs.assign(
+        pxl_col_in_fullres=obs['pxl_col_in_fullres'] * scaling_factors['tissue_hires_scalef'],
+        pxl_row_in_fullres=obs['pxl_row_in_fullres'] * scaling_factors['tissue_hires_scalef']
+    )
+
     # Read the gene abundances from filtered_feature_bc_matrix/
     logger.info("Reading the cell feature matrix")
     adata: AnnData = sc.read_10x_mtx('visium/filtered_feature_bc_matrix')
