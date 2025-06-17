@@ -437,22 +437,58 @@ def format_vitessce_cell_types(
                 "A": 0,
                 "B": 0,
             },
-            "spatialChannelColor": {
-                "A": [255, 255, 255],
-                "B": [255, 255, 255]
-            },
-            "spatialChannelWindow": {
-                "A": None,
-                "B": None
-            },
-            "spatialChannelVisible": {
-                "A": True,
-                "B": True
-            },
-            "spatialChannelOpacity": {
-                "A": 1,
-                "B": 1
-            },
+            "spatialChannelColor": (
+                {
+                    "A": [255, 0, 0],
+                    "B": [0, 255, 0],
+                    "C": [0, 0, 255],
+                    "D": [255, 255, 255]
+                }
+                if spatial_type == "visium" else
+                {
+                    "A": [255, 255, 255],
+                    "B": [255, 255, 255]
+                }
+            ),
+            "spatialChannelWindow": (
+                {
+                    "A": None,
+                    "B": None,
+                    "C": None,
+                    "D": None
+                }
+                if spatial_type == "visium" else
+                {
+                    "A": None,
+                    "B": None
+                }
+            ),
+            "spatialChannelVisible": (
+                {
+                    "A": True,
+                    "B": True,
+                    "C": True,
+                    "D": True
+                }
+                if spatial_type == "visium" else
+                {
+                    "A": True,
+                    "B": True
+                }
+            ),
+            "spatialChannelOpacity": (
+                {
+                    "A": 1,
+                    "B": 1,
+                    "C": 1,
+                    "D": 1
+                }
+                if spatial_type == "visium" else
+                {
+                    "A": 1,
+                    "B": 1
+                }
+            ),
             "spotLayer": {
                 "A": "__dummy__",
                 "B": "__dummy__"
@@ -544,18 +580,50 @@ def format_vitessce_cell_types(
                         "spatialTargetC": {
                             "A": "A"
                         },
-                        "spatialChannelColor": {
-                            "A": "A"
-                        },
-                        "spatialChannelWindow": {
-                            "A": "A"
-                        },
-                        "spatialChannelVisible": {
-                            "A": "A"
-                        },
-                        "spatialChannelOpacity": {
-                            "A": "A"
-                        }
+                        "spatialChannelColor": (
+                            {
+                                "A": "A",
+                                "B": "B",
+                                "C": "C"
+                            }
+                            if spatial_type == "visium" else
+                            {
+                                "A": "A"
+                            }
+                        ),
+                        "spatialChannelWindow": (
+                            {
+                                "A": "A",
+                                "B": "B",
+                                "C": "C"
+                            }
+                            if spatial_type == "visium" else
+                            {
+                                "A": "A"
+                            }
+                        ),
+                        "spatialChannelVisible": (
+                            {
+                                "A": "A",
+                                "B": "B",
+                                "C": "C"
+                            }
+                            if spatial_type == "visium" else
+                            {
+                                "A": "A"
+                            }
+                        ),
+                        "spatialChannelOpacity": (
+                            {
+                                "A": "A",
+                                "B": "B",
+                                "C": "C"
+                            }
+                            if spatial_type == "visium" else
+                            {
+                                "A": "A"
+                            }
+                        )
                     }
                 },
                 "B": {
@@ -602,18 +670,42 @@ def format_vitessce_cell_types(
                         "spatialTargetC": {
                             "B": "B"
                         },
-                        "spatialChannelColor": {
-                            "B": "B"
-                        },
-                        "spatialChannelWindow": {
-                            "B": "B"
-                        },
-                        "spatialChannelVisible": {
-                            "B": "B"
-                        },
-                        "spatialChannelOpacity": {
-                            "B": "B"
-                        }
+                        "spatialChannelColor": (
+                            {
+                                "D": "D"
+                            }
+                            if spatial_type == "visium" else
+                            {
+                                "B": "B"
+                            }
+                        ),
+                        "spatialChannelWindow": (
+                            {
+                                "D": "D"
+                            }
+                            if spatial_type == "visium" else
+                            {
+                                "B": "B"
+                            }
+                        ),
+                        "spatialChannelVisible": (
+                            {
+                                "D": "D"
+                            }
+                            if spatial_type == "visium" else
+                            {
+                                "B": "B"
+                            }
+                        ),
+                        "spatialChannelOpacity": (
+                            {
+                                "D": "D"
+                            }
+                            if spatial_type == "visium" else
+                            {
+                                "B": "B"
+                            }
+                        )
                     }
                 }
             }
