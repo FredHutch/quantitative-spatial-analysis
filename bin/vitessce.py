@@ -39,7 +39,7 @@ def main():
     # For each of the spatial datasets which were provided as inputs, generate outputs
     # for each of the regions that they contain
     for sdata in read_spatial_datasets():
-        extract_regions(adata, sdata)
+        extract_regions(adata, sdata, spatial_type=adata.uns.get("type", "unknown"))
 
     # If there is a spatialdata.zarr folder, remove it
     if Path("spatialdata.zarr").exists():
@@ -84,7 +84,7 @@ def read_spatialdata_zarr(path: Path) -> SpatialData:
     return sdata
 
 
-def extract_regions(adata: ad.AnnData, sdata: SpatialData):
+def extract_regions(adata: ad.AnnData, sdata: SpatialData, spatial_type: str):
     """
     Given a set of annotated spatial coordinates (adata) and a spatial dataset (sdata),
     write out the subsetted spatial dataset for each region in the annotated dataset.
@@ -144,7 +144,8 @@ def extract_regions(adata: ad.AnnData, sdata: SpatialData):
             dict(
                 description=f"Number of cells: {len(region_sdata.tables['table']):,}",
                 init_gene=init_gene
-            )
+            ),
+            spatial_type
         )
 
 
@@ -260,7 +261,7 @@ def _update_omero_attr(obj):
     return was_modified
 
 
-def write_vitessce_config(region: str, vt_kwargs: Dict[str, Any]):
+def write_vitessce_config(region: str, vt_kwargs: Dict[str, Any], spatial_type: str):
 
     # Configure the viewer twice:
     #  - show cell measurements along with the cell type annotations (similar to the Xenium viewer)
@@ -272,6 +273,7 @@ def write_vitessce_config(region: str, vt_kwargs: Dict[str, Any]):
                 region,
                 obs_groups="cluster",
                 title_suffix="Cell Types",
+                spatial_type=spatial_type,
                 **vt_kwargs
             )
         ),
@@ -281,6 +283,7 @@ def write_vitessce_config(region: str, vt_kwargs: Dict[str, Any]):
                 region,
                 obs_groups="neighborhood",
                 title_suffix="Neighborhoods",
+                spatial_type=spatial_type,
                 **vt_kwargs
             )
         )
@@ -296,13 +299,19 @@ def format_vitessce_cell_types(
     obs_type="cell",
     obs_groups="cluster",
     init_gene="CD45",
-    radius=20,
     description="",
-    title_suffix="Cell Types"
+    title_suffix="Cell Types",
+    spatial_type="unknown"
 ):
     """
     Format a Vitessce configuration for the cell types in a region, similar to the Xenium viewer.
     """
+
+    # The spot radius varies by spatial type
+    if spatial_type == "xenium" or spatial_type == "visium":
+        radius = 10
+    else:
+        radius = 20
 
     zarr_path = sanitize_filepath(region) + ".zarr.zip"
 
