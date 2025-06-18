@@ -87,7 +87,6 @@ class SpatialAnalysisCatalog:
         }
 
 
-
 @st.cache_resource
 def get_catalog(
     refresh_time: float,

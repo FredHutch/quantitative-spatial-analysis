@@ -1,4 +1,5 @@
 import io
+import json
 from pathlib import Path
 
 from app.cirro import get_project, list_datasets, parse_region
@@ -72,7 +73,7 @@ class SpatialDataCatalog:
     # Internal constants
     _visium_clusters_suffix = "/analysis/clustering/gene_expression_graphclust/clusters.csv"
     _visium_coordinates_suffix = "/spatial/tissue_positions.parquet"
-
+    _visium_scalefactors_suffix = "/spatial/scalefactors_json.json"
 
     def __init__(self):
         # Get all datasets of the expected types, and group them by the original ingest dataset
@@ -169,7 +170,7 @@ class SpatialDataCatalog:
                 # Otherwise, ask the user to select the resolution
                 points_folder = self.select_visium_resolution(dataset_id)
             if points_folder is None:
-                raise ValueError("No spatial coordinates selected")
+                return
 
             # Get the points for the selected resolution
             return self.get_points_visium(dataset_id, points_folder)
@@ -253,7 +254,8 @@ class SpatialDataCatalog:
                 index=None
             )
             if points_folder is None:
-                raise ValueError("No spatial coordinates selected")
+                st.write("Please select spatial coordinates to continue.")
+                return
         return points_folder
 
     def get_points_visium(self, dataset_id: str, points_folder: str) -> SpatialPoints:
@@ -264,6 +266,7 @@ class SpatialDataCatalog:
         points_file = points_folder + self._visium_coordinates_suffix
 
         # Get the spatial coordinates
+        logger.info(f"Reading the spatial coordinates from {points_file}")
         coords = (
             pd.read_parquet(
                 io.BytesIO(
@@ -275,6 +278,22 @@ class SpatialDataCatalog:
             )
             .set_index("barcode")
             .query("in_tissue == 1")
+        )
+
+        # Get the scale factors for the Visium dataset
+        scalefactors_file = points_folder + self._visium_scalefactors_suffix
+        logger.info(f"Reading the scaling factors for the Visium dataset ({scalefactors_file})")
+        scaling_factors = json.loads(
+            ds
+            .list_files()
+            .get_by_name(scalefactors_file)
+            .read()
+        )
+
+        # Apply the scaling factors to the coordinates
+        coords = coords.assign(
+            pxl_col_in_fullres=coords['pxl_col_in_fullres'] * scaling_factors['tissue_hires_scalef'],
+            pxl_row_in_fullres=coords['pxl_row_in_fullres'] * scaling_factors['tissue_hires_scalef']
         )
 
         # Get the automated clusters

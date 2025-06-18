@@ -1,4 +1,4 @@
-from time import sleep
+from time import sleep, time
 from typing import List, Tuple, Union
 from cirro import DataPortalDataset, DataPortalProject
 import pandas as pd
@@ -105,6 +105,7 @@ def show_dataset(project: DataPortalProject):
 
     # Let the user navigate back to the dataset selection
     back_button("dataset", label="Switch Dataset", key="back-button-dataset-top")
+    refresh_button(label="Refresh", key="refresh-button-dataset-top")
 
     # Show the ingest dataset
     with st.container(key=dataset_id):
@@ -128,6 +129,7 @@ def show_dataset(project: DataPortalProject):
     # If there are none, stop
     if len(analysis_outputs) == 0:
         back_button("dataset", label="Switch Dataset", key="back-button-dataset-bottom")
+        refresh_button(label="Refresh", key="refresh-button-dataset-bottom")
         return
 
     # Group the analysis outputs by type
@@ -151,6 +153,7 @@ def show_dataset(project: DataPortalProject):
         html.card_style(card_key)
         ix += 1
     back_button("dataset", label="Switch Dataset", key="back-button-dataset-top-bottom")
+    refresh_button(label="Refresh", key="refresh-button-dataset-top-bottom")
 
 
 def dataset_buttons(catalog: SpatialDataCatalog, dataset_id: str):
@@ -229,6 +232,13 @@ def back_button(session_key: Union[str, List[str]], label="Back", key=None):
         st.rerun()
 
 
+def refresh_button(label="Refresh", key="refresh-button"):
+    if st.button(label, key=key):
+        # Update the refresh time
+        st.session_state["refresh_time"] = time()
+        st.rerun()
+
+
 def pick_region(project: DataPortalProject):
     # Get the catalog
     catalog = get_catalog_cached(project.id)
@@ -246,6 +256,9 @@ def pick_region(project: DataPortalProject):
             st.exception(e)
             back_button("pick_region", label="Back to Dataset")
             return
+    if points is None:
+        back_button("pick_region", label="Back to Dataset")
+        return
 
     # Get the size of the plot to show
     width, height = _calc_plot_size(points)
@@ -303,12 +316,9 @@ def pick_region(project: DataPortalProject):
                     back_button("pick_region", label="Back to Dataset")
                     return
                 if ds is not None:
-                    try:
-                        catalog.add_dataset(ds)
-                    except Exception as e:
-                        st.exception(e)
-                        back_button("pick_region", label="Back to Dataset")
-                        return
+                    st.session_state["refresh_time"] = time()
+                    back_button("pick_region", label="Back to Dataset")
+                    return
             sleep(1)
     else:
         st.warning("Enter a name for the region")
@@ -337,6 +347,9 @@ def show_region(project: DataPortalProject):
             st.exception(e)
             back_button("show_region", label="Back to Dataset")
             return
+    if points is None:
+        back_button("show_region", label="Back to Dataset")
+        return
 
     # Get the size of the plot to show
     width, height = _calc_plot_size(points)

@@ -4,7 +4,7 @@ from matplotlib import pyplot as plt
 import seaborn as sns
 from anndata import AnnData
 from app import html
-from app.datasets.ui import back_button
+from app.datasets.ui import back_button, refresh_button
 import streamlit as st
 from app.analyses.data import get_catalog, SpatialAnalysisCatalog
 from app.analyses.plots import sort_table
@@ -119,6 +119,7 @@ def show_dataset(project: DataPortalProject):
 
     # Let the user navigate back to the dataset selection
     back_button("dataset", label="Switch Dataset", key="back-button-analysis-top")
+    refresh_button(label="Switch Dataset", key="refresh-button-analysis-top")
 
     # Get the dataset
     dataset = catalog.datasets[dataset_id]
@@ -145,6 +146,7 @@ def show_dataset(project: DataPortalProject):
     explore_analysis()
 
     back_button("dataset", label="Switch Dataset", key="back-button-analysis-bottom")
+    refresh_button(label="Switch Dataset", key="refresh-button-analysis-bottom")
 
 
 def read_file(file_path: str, filetype="csv", **kwargs):
