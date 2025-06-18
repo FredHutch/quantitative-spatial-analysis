@@ -20,7 +20,10 @@ logger = logging.getLogger(__name__)
 
 def read_h5ad(fp: Path):
     logger.info(f"Reading {fp}")
-    return ad.read_h5ad(fp)
+    adata = ad.read_h5ad(fp)
+    print(adata)
+    logger.info(f"Read {adata.shape[0]:,} observations and {adata.shape[1]:,} variables")
+    return adata
 
 
 # Read all of the anndata objects
