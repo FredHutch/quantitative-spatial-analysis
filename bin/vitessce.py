@@ -309,7 +309,7 @@ def format_vitessce_cell_types(
 
     # The spot radius varies by spatial type
     if spatial_type == "xenium" or spatial_type == "visium":
-        radius = 10
+        radius = 5
     else:
         radius = 20
 
