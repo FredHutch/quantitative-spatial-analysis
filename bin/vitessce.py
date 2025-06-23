@@ -36,10 +36,19 @@ def main():
     adata = ad.read_h5ad("spatialdata.h5ad")
     _log_obj(adata)
 
+    spatial_dataset = (
+        adata
+        .uns
+        .get("spatial_dataset", {})
+    )
+    logger.info(f"spatial_dataset:")
+    for line in json.dumps(spatial_dataset, indent=4).splitlines():
+        logger.info(line)
+
     # For each of the spatial datasets which were provided as inputs, generate outputs
     # for each of the regions that they contain
     for sdata in read_spatial_datasets():
-        extract_regions(adata, sdata, spatial_type=adata.uns.get("type", "unknown"))
+        extract_regions(adata, sdata, spatial_dataset.get("type", "unknown"))
 
     # If there is a spatialdata.zarr folder, remove it
     if Path("spatialdata.zarr").exists():
