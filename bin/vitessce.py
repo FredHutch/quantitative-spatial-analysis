@@ -307,6 +307,13 @@ def format_vitessce_cell_types(
     Format a Vitessce configuration for the cell types in a region, similar to the Xenium viewer.
     """
 
+    logger.info(f"obs_type = {obs_type}")
+    logger.info(f"obs_groups = {obs_groups}")
+    logger.info(f"init_gene = {init_gene}")
+    logger.info(f"description = {description}")
+    logger.info(f"title_suffix = {title_suffix}")
+    logger.info(f"spatial_type = {spatial_type}")
+
     # The spot radius varies by spatial type
     if spatial_type == "xenium" or spatial_type == "visium":
         radius = 5
