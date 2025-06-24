@@ -702,7 +702,7 @@ def format_vitessce_cell_types(
                         }
                     },
                     "imageChannel": {
-                        "spatialTargetC": {
+                        "spatialTargetC": (
                             {
                                 "D": "D",
                                 "E": "E",
@@ -712,7 +712,7 @@ def format_vitessce_cell_types(
                             {
                                 "B": "B"
                             }
-                        },
+                        ),
                         "spatialChannelColor": (
                             {
                                 "D": "D",
