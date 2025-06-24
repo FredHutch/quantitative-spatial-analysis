@@ -325,7 +325,7 @@ def format_vitessce_cell_types(
 
     # The spot radius varies by spatial type
     if spatial_type == "xenium" or spatial_type == "visium":
-        radius = 5
+        radius = 7
     else:
         radius = 20
 
@@ -449,16 +449,29 @@ def format_vitessce_cell_types(
                 "A": "__dummy__",
                 "B": "__dummy__"
             },
-            "spatialTargetC": {
-                "A": 0,
-                "B": 0,
-            },
+            "spatialTargetC": (
+                {
+                    "A": 0,
+                    "B": 1,
+                    "C": 2,
+                    "D": 0,
+                    "E": 1,
+                    "F": 2
+                }
+                if spatial_type == "visium" else
+                {
+                    "A": 0,
+                    "B": 0
+                }
+            ),
             "spatialChannelColor": (
                 {
                     "A": [255, 0, 0],
                     "B": [0, 255, 0],
                     "C": [0, 0, 255],
-                    "D": [255, 255, 255]
+                    "D": [255, 0, 0],
+                    "E": [0, 255, 0],
+                    "F": [0, 0, 255]
                 }
                 if spatial_type == "visium" else
                 {
@@ -471,7 +484,9 @@ def format_vitessce_cell_types(
                     "A": None,
                     "B": None,
                     "C": None,
-                    "D": None
+                    "D": None,
+                    "E": None,
+                    "F": None
                 }
                 if spatial_type == "visium" else
                 {
@@ -484,7 +499,9 @@ def format_vitessce_cell_types(
                     "A": True,
                     "B": True,
                     "C": True,
-                    "D": True
+                    "D": True,
+                    "E": None,
+                    "F": None
                 }
                 if spatial_type == "visium" else
                 {
@@ -497,7 +514,9 @@ def format_vitessce_cell_types(
                     "A": 1,
                     "B": 1,
                     "C": 1,
-                    "D": 1
+                    "D": 1,
+                    "E": 1,
+                    "F": 1
                 }
                 if spatial_type == "visium" else
                 {
@@ -684,11 +703,21 @@ def format_vitessce_cell_types(
                     },
                     "imageChannel": {
                         "spatialTargetC": {
-                            "B": "B"
+                            {
+                                "D": "D",
+                                "E": "E",
+                                "F": "F",
+                            }
+                            if spatial_type == "visium" else
+                            {
+                                "B": "B"
+                            }
                         },
                         "spatialChannelColor": (
                             {
-                                "D": "D"
+                                "D": "D",
+                                "E": "E",
+                                "F": "F",
                             }
                             if spatial_type == "visium" else
                             {
@@ -697,7 +726,9 @@ def format_vitessce_cell_types(
                         ),
                         "spatialChannelWindow": (
                             {
-                                "D": "D"
+                                "D": "D",
+                                "E": "E",
+                                "F": "F",
                             }
                             if spatial_type == "visium" else
                             {
@@ -706,7 +737,9 @@ def format_vitessce_cell_types(
                         ),
                         "spatialChannelVisible": (
                             {
-                                "D": "D"
+                                "D": "D",
+                                "E": "E",
+                                "F": "F",
                             }
                             if spatial_type == "visium" else
                             {
@@ -715,7 +748,9 @@ def format_vitessce_cell_types(
                         ),
                         "spatialChannelOpacity": (
                             {
-                                "D": "D"
+                                "D": "D",
+                                "E": "E",
+                                "F": "F",
                             }
                             if spatial_type == "visium" else
                             {
