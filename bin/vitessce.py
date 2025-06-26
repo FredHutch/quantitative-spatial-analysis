@@ -500,8 +500,8 @@ def format_vitessce_cell_types(
                     "B": True,
                     "C": True,
                     "D": True,
-                    "E": None,
-                    "F": None
+                    "E": True,
+                    "F": True
                 }
                 if spatial_type == "visium" else
                 {
