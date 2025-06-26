@@ -53,7 +53,8 @@ class SpatialDataCatalog:
         "xenium",
         "ingest_spaceranger",  # Visium
         "process-hutch-qupath-stardist-1_0",
-        "process-hutch-cellpose-1_0"
+        "process-hutch-cellpose-1_0",
+        "proseg-resegment-1-0"
     ]
     # Mapping of ingest dataset IDs to the datasets that were derived from them
     groups: Dict[str, List[str]]
@@ -180,6 +181,48 @@ class SpatialDataCatalog:
             "process-hutch-cellpose-1_0"
         ]:
             return self.get_points_stardist(dataset_id)
+
+        elif process_id == "proseg-resegment-1-0":
+            return self.get_points_proseg(dataset_id)
+
+    def get_points_proseg(self, dataset_id: str) -> SpatialPoints:
+
+        # Get the Dataset object
+        ds = self.datasets[dataset_id]
+
+        # List the files in the dataset which may contain points
+        files = ds.list_files()
+
+        # Read in the file with the cell coordinates
+        coords = files.get_by_id("data/proseg/cell-metadata.csv.gz").read_csv()
+
+        _expected_cnames = ["centroid_x", "centroid_y", "cluster"]
+        for cname in ["cell"] + _expected_cnames:
+            if cname not in coords.columns:
+                raise ValueError(f"Missing column {cname} in proseg/cell-metadata.csv.gz")
+        coords = coords.set_index("cell").reindex(columns=_expected_cnames)
+
+        # Construct the URI for the folder
+        folder = "data/proseg"
+        folder_uri = str(Path(ds._get_detail().s3) / folder)
+
+        return SpatialPoints(
+            coords=coords,
+            clusters=coords["cluster"].astype(str),
+            xcol="centroid_x",
+            ycol="centroid_y",
+            meta_cols=[],
+            dataset=SpatialDataset(
+                type="proseg",
+                uri=folder_uri,
+                cirro_source=CirroDataset(
+                    domain=st.session_state["domain"],
+                    project=ds.project_id,
+                    dataset=dataset_id,
+                    path=folder
+                )
+            )
+        )
 
     def get_points_xenium(self, dataset_id: str) -> SpatialPoints:
 
