@@ -1,16 +1,9 @@
 
-from pathlib import Path
+from app.cirro import list_datasets
 
-from app.cirro import get_project, list_datasets, parse_region
-from app.models.points import SpatialPoints, SpatialDataset, CirroDataset
-
-from functools import lru_cache
-from io import BytesIO
-from typing import Dict, Generator, Union
+from typing import Dict
 from cirro.sdk.dataset import DataPortalDataset
 import pandas as pd
-from collections import defaultdict
-from typing import TypedDict, List
 import streamlit as st
 import logging
 
@@ -20,7 +13,6 @@ logging.basicConfig(
     handlers=[logging.StreamHandler()]
 )
 logger = logging.getLogger(__name__)
-
 
 
 class SpatialAnalysisCatalog:

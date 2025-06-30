@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from typing import List, Optional
 import pandas as pd
 from typing import Literal
+import plotly.express as px
 
 SpatialDatasetType = Literal['xenium', 'stardist']
 
@@ -29,6 +30,24 @@ class SpatialPoints:
     ycol: str
     meta_cols: List[str]
     dataset: SpatialDataset
+
+    def plotly_scatter(self, width: int, height: int, opacity: float):
+        return px.scatter(
+            self.coords,
+            x=self.xcol,
+            y=self.ycol,
+            color=(
+                None if self.clusters is None else
+                self.clusters.apply(str)
+            ),
+            width=width,
+            height=height,
+            opacity=opacity,
+            labels={
+                self.xcol: "X Coordinate",
+                self.ycol: "Y Coordinate"
+            }
+        )
 
 
 @dataclass

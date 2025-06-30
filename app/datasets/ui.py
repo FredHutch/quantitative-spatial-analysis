@@ -1,12 +1,14 @@
 from time import sleep, time
 from typing import List, Tuple, Union
 from cirro import DataPortalDataset, DataPortalProject
+import numpy as np
 import pandas as pd
 import streamlit as st
 import plotly.express as px
 from app import html
-from app.cirro import save_region, pick_dataset
+from app.cirro import save_region, pick_dataset, save_tma_cores
 from app.datasets.data import get_catalog, SpatialDataCatalog
+from app.datasets.helpers.autodetection import find_tma_cores, name_tma_cores
 from app.models.points import SpatialPoints, SpatialRegion
 from app.streamlit import set_query_param, clear_query_param, get_query_param
 import logging
@@ -34,12 +36,12 @@ def main(project: DataPortalProject):
     # Get the dataset
     dataset = select_dataset(project)
 
-    # If no dataset is selected, stop
+    # If no dataset is selected, just let the user refresh the page
     if dataset is None:
-        return
+        refresh_button(key='select-dataset-refresh-button')
 
     # If the user has selected a dataset to pick regions for, show that interface
-    if get_query_param("pick_region") is not None:
+    elif get_query_param("pick_region") is not None:
         pick_region(project)
 
     # If the user has selected a region to display, show that region
@@ -122,9 +124,14 @@ def show_dataset(project: DataPortalProject):
 
     # Make a list of the analysis outputs derived from this dataset
     analysis_outputs = catalog.groups[dataset_id]
+    logger.info("HERE0")
+    logger.info(dataset_id)
+    logger.info(analysis_outputs)
 
     # Ignore the ingest dataset itself
     analysis_outputs = [child_id for child_id in analysis_outputs if child_id != dataset_id]
+    logger.info("HERE1")
+    logger.info(analysis_outputs)
 
     # If there are none, stop
     if len(analysis_outputs) == 0:
@@ -172,8 +179,8 @@ def dataset_buttons(catalog: SpatialDataCatalog, dataset_id: str):
         html.cirro_analysis_button("Run Segmentation (StarDist)", dataset_id, "process-hutch-qupath-stardist-1_0")
         html.cirro_analysis_button("Run Segmentation (Cellpose)", dataset_id, "process-hutch-cellpose-1_0")
 
-    # StarDist / Cellpose: Pick Region
-    elif process_id in ["process-hutch-qupath-stardist-1_0", "process-hutch-cellpose-1_0"]:
+    # StarDist / Cellpose / Proseg: Pick Region
+    elif process_id in ["process-hutch-qupath-stardist-1_0", "process-hutch-cellpose-1_0", "proseg-resegment-1-0"]:
         if st.button("Pick Region", key=f"pick-regions-{dataset_id}"):
             set_query_param("pick_region", dataset_id)
             st.rerun()
@@ -254,32 +261,122 @@ def pick_region(project: DataPortalProject):
             points: SpatialPoints = catalog.get_points(dataset_id)
         except Exception as e:
             st.exception(e)
-            back_button("pick_region", label="Back to Dataset")
+            back_button("pick_region", label="Back to Dataset", key="back-to-dataset-2")
             return
     if points is None:
-        back_button("pick_region", label="Back to Dataset")
+        back_button("pick_region", label="Back to Dataset", key="back-to-dataset-1")
         return
 
     # Get the size of the plot to show
     width, height = _calc_plot_size(points)
 
+    # Either let the user manually select a region, or automatically pick TMA cores
+    selection_mode = st.selectbox(
+        label="Region Selection",
+        options=["Manual", "Automatic TMA Core Selection"],
+        index=0
+    )
+    if selection_mode == "Manual":
+        select_region_manually(points, width, height)
+    else:
+        select_tma_cores(points, width, height)
+
+    back_button("pick_region", label="Back to Dataset", key="back-to-dataset-0")
+
+
+def select_tma_cores(points: SpatialPoints, width: int, height: int):
+
+    # Let the user manually rotate the plot
+    angle = st.number_input(
+        label="Rotate Dataset",
+        step=1,
+        value=0
+    )
+    min_prop_cells = st.number_input(
+        "Minimum Fraction of Cells per TMA (%)",
+        value=0.1,
+        max_value=100.,
+        min_value=0.,
+        step=0.1
+    ) / 100.
+    with st.spinner("Finding TMA Cores"):
+        cores = find_tma_cores(points, angle, min_prop_cells=min_prop_cells)
+
+    # Let the user pick the naming scheme
+    core_naming_scheme = st.selectbox(
+        "TMA Core Naming Scheme:",
+        options=["Row=Letter; Column=Number", "Column=Letter; Row=Number"],
+        index=0
+    )
+    # Let the user flip the order of the rows and columns
+    row_start = st.selectbox("Rows Start From:", options=["Top", "Bottom"], index=0)
+    col_start = st.selectbox("Columns Start From:", options=["Left", "Right"], index=0)
+
+    # Name the row and column
+    cores = name_tma_cores(cores, core_naming_scheme, row_start, col_start)
+
+    # Plot the points and the identified cores
     with st.spinner("Loading plot..."):
         # Set up the scatter plot
-        fig = px.scatter(
-            points.coords,
-            x=points.xcol,
-            y=points.ycol,
-            color=(
-                None if points.clusters is None else
-                points.clusters.apply(str)
-            ),
+        fig = points.plotly_scatter(
             width=width,
             height=height,
-            opacity=st.number_input("Opacity", value=0.05, min_value=0.001, max_value=1., step=0.01),
-            labels={
-                points.xcol: "X Coordinate",
-                points.ycol: "Y Coordinate"
-            }
+            opacity=st.number_input("Opacity", value=0.05, min_value=0.001, max_value=1., step=0.01)
+        )
+        # Add a circle for every core
+        for _, core in cores.iterrows():
+            fig.add_shape(
+                type="circle",
+                xref="x",
+                yref="y",
+                x0=core['x'] - core['radius'],
+                x1=core['x'] + core['radius'],
+                y0=core['y'] - core['radius'],
+                y1=core['y'] + core['radius'],
+                label=dict(
+                    text=core["name"],
+                    xanchor="center",
+                    yanchor="middle",
+                    font=dict(color="black")
+                )
+            )
+
+        # Optionally invert the axes
+        if st.checkbox("Invert X-axis", value=False):
+            fig.update_xaxes(autorange='reversed')
+        if st.checkbox("Invert Y-axis", value=False):
+            fig.update_yaxes(autorange='reversed')
+        # Display the plot
+        st.plotly_chart(fig, use_container_width=False)
+
+    name = st.text_input("Name of TMA")
+
+    if name:
+        if st.button(f"Save Region - {name}"):
+            with st.spinner("Saving region..."):
+                try:
+                    ds = save_tma_cores(points, name, cores)
+                except Exception as e:
+                    st.exception(e)
+                    back_button("pick_region", label="Back to Dataset", key="back-to-dataset-3")
+                    return
+                if ds is not None:
+                    st.session_state["refresh_time"] = time()
+                    back_button("pick_region", label="Back to Dataset", key="back-to-dataset-4")
+                    return
+            sleep(1)
+    else:
+        st.warning("Enter a name for the TMA")
+
+
+def select_region_manually(points: SpatialPoints, width: int, height: int):
+
+    with st.spinner("Loading plot..."):
+        # Set up the scatter plot
+        fig = points.plotly_scatter(
+            width=width,
+            height=height,
+            opacity=st.number_input("Opacity", value=0.05, min_value=0.001, max_value=1., step=0.01)
         )
         # Optionally invert the axes
         if st.checkbox("Invert X-axis", value=False):
@@ -313,17 +410,15 @@ def pick_region(project: DataPortalProject):
                     )
                 except Exception as e:
                     st.exception(e)
-                    back_button("pick_region", label="Back to Dataset")
+                    back_button("pick_region", label="Back to Dataset", key="back-to-dataset-5")
                     return
                 if ds is not None:
                     st.session_state["refresh_time"] = time()
-                    back_button("pick_region", label="Back to Dataset")
+                    back_button("pick_region", label="Back to Dataset", key="back-to-dataset-6")
                     return
             sleep(1)
     else:
         st.warning("Enter a name for the region")
-
-    back_button("pick_region", label="Back to Dataset")
 
 
 def show_region(project: DataPortalProject):
@@ -334,14 +429,22 @@ def show_region(project: DataPortalProject):
     region_id = get_query_param("show_region")
 
     # Get the region
-    region: SpatialRegion = catalog.regions[region_id]
+    region: Union[SpatialRegion, List[SpatialRegion]] = catalog.regions[region_id]
+    logger.info(region[0].dataset.cirro_source.dataset)
+
+    cirro_source = (
+        region.dataset.cirro_source
+        if isinstance(region, SpatialRegion)
+        else
+        region[0].dataset.cirro_source
+    )
 
     # Get the coordinates of points for this dataset
     with st.spinner("Loading points..."):
         try:
             points: SpatialPoints = catalog.get_points(
-                region.dataset.cirro_source.dataset,
-                path=region.dataset.cirro_source.path
+                cirro_source.dataset,
+                path=cirro_source.path
             )
         except Exception as e:
             st.exception(e)
@@ -376,15 +479,33 @@ def show_region(project: DataPortalProject):
     if st.checkbox("Invert Y-axis", value=False):
         fig.update_yaxes(autorange='reversed')
 
-    # Add the region outline
-    for shape in region.outline:
-        fig.add_trace(
-            px.line(
-                x=shape["x"] + [shape["x"][0]],
-                y=shape["y"] + [shape["y"][0]],
-                color_discrete_sequence=["orange"]
-            ).data[0]
-        )
+    # Add the region outline(s)
+    if isinstance(region, SpatialRegion):
+        for shape in region.outline:
+            fig.add_trace(
+                px.line(
+                    x=shape["x"] + [shape["x"][0]],
+                    y=shape["y"] + [shape["y"][0]],
+                    color_discrete_sequence=["black"]
+                ).data[0]
+            )
+    else:
+        for _region in region:
+            for shape in _region.outline:
+                fig.add_trace(
+                    px.line(
+                        x=shape["x"] + [shape["x"][0]],
+                        y=shape["y"] + [shape["y"][0]],
+                        color_discrete_sequence=["black"]
+                    ).data[0]
+                )
+                fig.add_annotation(
+                    x=np.mean(shape["x"]),
+                    y=np.mean(shape["y"]),
+                    text=_region.region_id,
+                    showarrow=False,
+                    font=dict(color="black")
+                )
 
     # Show the figure
     st.plotly_chart(fig, use_container_width=False)

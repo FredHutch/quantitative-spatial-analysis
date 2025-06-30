@@ -6,11 +6,12 @@ readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
     "anndata>=0.11.4",
-    "cirro>=1.5.2",
+    "cirro==1.5.4",
     "llvmlite>=0.44.0",
     "matplotlib>=3.10.3",
     "plotly>=6.1.2",
     "scanpy>=1.11.2",
+    "scikit-learn>=1.7.0",
     "scipy>=1.15.3",
     "seaborn>=0.13.2",
     "streamlit>=1.45.1",

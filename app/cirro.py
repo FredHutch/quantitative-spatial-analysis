@@ -1,15 +1,19 @@
 from dataclasses import asdict
+import os
+from pathlib import Path
 from app.models.points import CirroDataset, SpatialDataset, SpatialPoints, SpatialRegion
 from app.streamlit import get_query_param, set_query_param, clear_query_param
 import json
 from tempfile import TemporaryDirectory
 from time import sleep, time
-from typing import Optional, List
+from typing import Iterable, Optional, List, Union
 from cirro import DataPortal, DataPortalProject
 from cirro import DataPortalDataset
 import streamlit as st
 import logging
 import pandas as pd
+import math
+from functools import lru_cache
 
 logging.basicConfig(
     level=logging.INFO,
@@ -176,17 +180,11 @@ def cirro_analysis_link(dataset_id: str, analysis_id: str) -> str:
     else:
 
         return f"{cirro_project_link()}/pipeline/{analysis_id}"
+    
 
-
-def save_region(
-    points: SpatialPoints,
-    region_id: str,
-    outline: dict
-) -> DataPortalDataset:
-    """
-    Save a region to Cirro.
-    """
-
+def _get_project_safe() -> DataPortalProject:
+    """Raise an error if a project is not selected, otherwise return the selected Cirro Project."""
+    
     # Get the Cirro client
     portal: DataPortal = st.session_state.get("data_portal")
     # If we are not logged in, stop here
@@ -198,6 +196,68 @@ def save_region(
     if project is None:
         raise ValueError("No project selected")
 
+    return project
+
+
+def save_tma_cores(points: SpatialPoints, name: str, cores: pd.DataFrame):
+
+    # Make a single object that has all of the regions
+    regions = [
+        region
+        for region in _tma_cores_to_spatial_region(
+            cores,
+            dataset=points.dataset,
+            name_prefix=name,
+        )
+    ]
+
+    save_region_json(
+        regions,
+        name,
+        source_dataset=points.dataset.cirro_source.dataset
+    )
+
+
+def _tma_cores_to_spatial_region(
+    cores: pd.DataFrame,
+    dataset: CirroDataset,
+    name_prefix: str,
+    n_points=100
+) -> Iterable[SpatialRegion]:
+
+    for _, core in cores.iterrows():
+
+        yield SpatialRegion(
+            outline=[
+                dict(
+                    xref="x",
+                    yref="y",
+                    x=[
+                        core['x'] + (core['radius'] * math.cos(_calc_angle(i, n_points)))
+                        for i in range(n_points)
+                    ],
+                    y=[
+                        core['y'] + (core['radius'] * math.sin(_calc_angle(i, n_points)))
+                        for i in range(n_points)
+                    ]
+                )
+            ],
+            dataset=dataset,
+            region_id=core["name"]
+        )
+
+
+@lru_cache
+def _calc_angle(i, n):
+    return 2 * math.pi * i / n
+
+
+def save_region(
+    points: SpatialPoints,
+    region_id: str,
+    outline: dict
+) -> DataPortalDataset:
+
     # Format the region information
     # Note that the region_id will be saved as the Cirro dataset name,
     # which is editable while the files within the dataset are not.
@@ -206,13 +266,35 @@ def save_region(
         dataset=points.dataset
     )
 
-    # Make a description of the dataset in Cirro which contains the region
-    dataset_name = (
-        project
-        .get_dataset_by_id(points.dataset.cirro_source.dataset)
-        .name
+    save_region_json(
+        region,
+        region_id,
+        source_dataset=points.dataset.cirro_source.dataset
     )
+
+
+def save_region_json(
+    region: Union[SpatialRegion, List[SpatialRegion]],
+    region_id: str,
+    source_dataset: str
+) -> DataPortalDataset:
+    """
+    Save a region to Cirro.
+    """
+
+    # Get Cirro information
+    project = _get_project_safe()
+
+    # Make a description of the dataset in Cirro which contains the region
+    dataset_name = project.get_dataset_by_id(source_dataset).name
     description = f"{dataset_name} - {region_id}"
+
+    # Format the JSON string to save
+    json_str = (
+        json.dumps(asdict(region), indent=4)
+        if isinstance(region, SpatialRegion) else
+        json.dumps([asdict(r) for r in region], indent=4)
+    )
 
     # Write out the dataset to a temporary file
     # and upload it to Cirro
@@ -220,11 +302,7 @@ def save_region(
 
         # Write the MuData object to the file
         with open(f"{tmp}/region.json", "w") as handle:
-            json.dump(
-                asdict(region),
-                handle,
-                indent=4
-            )
+            handle.write(json_str)
 
         # Upload the file to Cirro
         try:
@@ -249,7 +327,7 @@ def parse_region(
     dataset: DataPortalDataset,
     parse_retry_interval=0.1,
     parse_retry_timeout=10
-) -> Optional[SpatialRegion]:
+) -> Union[SpatialRegion, List[SpatialDataset]]:
     """
     Read region information from a dataset
     """
@@ -259,25 +337,33 @@ def parse_region(
         if region_json:
             break
         sleep(parse_retry_interval)
+
     if len(region_json) == 0:
         raise ValueError(f"No region.json file found in {dataset.name}")
 
     region = json.loads(region_json[0].read())
 
-    try:
-        return SpatialRegion(
-            outline=region["outline"],
-            region_id=dataset.name,
-            dataset=SpatialDataset(
-                type=region["dataset"]["type"],
-                uri=region["dataset"]["uri"],
-                cirro_source=CirroDataset(
-                    domain=st.session_state["domain"],
-                    project=region["dataset"]["cirro_source"]["project"],
-                    dataset=region["dataset"]["cirro_source"]["dataset"],
-                    path=region["dataset"]["cirro_source"]["path"]
-                )
+    if isinstance(region, list):
+        return [
+            parse_region_from_dict(r, r['region_id'])
+            for r in region
+        ]
+    else:
+        return parse_region_from_dict(region, dataset.name)
+
+
+def parse_region_from_dict(region: dict, region_id: str):
+    return SpatialRegion(
+        outline=region["outline"],
+        region_id=region_id,
+        dataset=SpatialDataset(
+            type=region["dataset"]["type"],
+            uri=region["dataset"]["uri"],
+            cirro_source=CirroDataset(
+                domain=st.session_state["domain"],
+                project=region["dataset"]["cirro_source"]["project"],
+                dataset=region["dataset"]["cirro_source"]["dataset"],
+                path=region["dataset"]["cirro_source"]["path"]
             )
         )
-    except: # noqa
-        return
+    )

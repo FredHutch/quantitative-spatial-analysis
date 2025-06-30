@@ -7,7 +7,7 @@ from app.models.points import SpatialPoints, SpatialDataset, CirroDataset
 
 from functools import lru_cache
 from io import BytesIO
-from typing import Dict, Generator, Union
+from typing import Dict, Generator, Set, Union
 from cirro.sdk.dataset import DataPortalDataset
 import pandas as pd
 from collections import defaultdict
@@ -21,19 +21,6 @@ logging.basicConfig(
     handlers=[logging.StreamHandler()]
 )
 logger = logging.getLogger(__name__)
-
-
-def _get_ingest_ids(
-    dataset: Union[DataPortalDataset, str]
-) -> Generator[str, str, str]:
-    if isinstance(dataset, str):
-        project = get_project()
-        dataset = project.get_dataset_by_id(dataset)
-    if dataset.process.executor == "INGEST":
-        yield dataset.id
-    else:
-        for parent_dataset in dataset.source_datasets:
-            yield from _get_ingest_ids(parent_dataset)
 
 
 class DatasetGroup(TypedDict):
@@ -71,6 +58,9 @@ class SpatialDataCatalog:
     # Dataframe of the catalog
     df: pd.DataFrame
 
+    # All datasets that we have access to
+    all_dataset_ids: Set[str]
+
     # Internal constants
     _visium_clusters_suffix = "/analysis/clustering/gene_expression_graphclust/clusters.csv"
     _visium_coordinates_suffix = "/spatial/tissue_positions.parquet"
@@ -85,6 +75,9 @@ class SpatialDataCatalog:
 
         # Get the list of all datasets
         datasets = list_datasets()
+
+        # Keep track of all datasets that we have access to
+        self.all_dataset_ids = set([ds.id for ds in datasets])
 
         # If no project was selected, stop here
         if not datasets:
@@ -117,6 +110,28 @@ class SpatialDataCatalog:
         if self.df.shape[0]:
             self.df.sort_values("Created", ascending=False, inplace=True)
 
+        logger.info(self.groups)
+
+    def _get_ingest_ids(self, dataset: Union[DataPortalDataset, str]) -> Generator[str, str, str]:
+        """Find the dataset furthest back in the chain of provenence that we can access."""
+
+        if isinstance(dataset, str):
+            project = get_project()
+            dataset = project.get_dataset_by_id(dataset)
+        if dataset.process.executor == "INGEST":
+            yield dataset.id
+        else:
+            source_datasets = [
+                parent_dataset
+                for parent_dataset in dataset.source_datasets
+                if parent_dataset.id in self.all_dataset_ids
+            ]
+            if len(source_datasets) > 0:
+                for ds in source_datasets:
+                    yield from self._get_ingest_ids(ds)
+            else:
+                yield dataset.id
+
     def add_dataset(self, dataset: DataPortalDataset):
 
         # Parse region datasets in a particular way
@@ -125,7 +140,14 @@ class SpatialDataCatalog:
 
             self.datasets[dataset.id] = dataset
             self.dataset_types[dataset.id] = "Region"
-            for ingest_id in _get_ingest_ids(region.dataset.cirro_source.dataset):
+            logger.info("--------------------HERE0")
+            for ingest_id in self._get_ingest_ids(
+                (
+                    region[0]
+                    if isinstance(region, list)
+                    else region
+                ).dataset.cirro_source.dataset
+            ):
                 self.groups[ingest_id].append(dataset.id)
             self.regions[dataset.id] = region
 
@@ -141,7 +163,7 @@ class SpatialDataCatalog:
 
             self.datasets[dataset.id] = dataset
             self.dataset_types[dataset.id] = dataset.process.name
-            for ingest_id in _get_ingest_ids(dataset):
+            for ingest_id in self._get_ingest_ids(dataset):
                 self.groups[ingest_id].append(dataset.id)
 
     @lru_cache
