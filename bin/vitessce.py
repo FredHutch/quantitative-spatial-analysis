@@ -302,6 +302,29 @@ def write_vitessce_config(region: str, vt_kwargs: Dict[str, Any], spatial_type: 
             json.dump(vt_config, f, indent=4)
 
 
+def _config_switch_spatial_type(spatial_type, value_group):
+    if value_group == "A":
+        if spatial_type == "visium":
+             return {
+                "A": "A",
+                "B": "B",
+                "C": "C"
+            }
+        else:
+             return {"A": "A"}
+    elif value_group == "B":
+        if spatial_type == "visium":
+             return {
+                "D": "B",
+                "E": "E",
+                "F": "F"
+            }
+        else:
+             return {"B": "B"}
+    else:
+        raise ValueError(f"Unexpected value_group = {value_group}")
+
+
 def format_vitessce_cell_types(
     region: str,
     schema_version="1.0.16",
@@ -589,9 +612,11 @@ def format_vitessce_cell_types(
                             "A": "A"
                         },
                         "imageChannel": {
-                            "A": [
-                                "A"
-                            ]
+                            "A": (
+                                ["A", "B", "C"]
+                                if spatial_type == "visium"
+                                else ["A"]
+                            )
                         }
                     },
                     "spotLayer": {
@@ -612,53 +637,11 @@ def format_vitessce_cell_types(
                         }
                     },
                     "imageChannel": {
-                        "spatialTargetC": {
-                            "A": "A"
-                        },
-                        "spatialChannelColor": (
-                            {
-                                "A": "A",
-                                "B": "B",
-                                "C": "C"
-                            }
-                            if spatial_type == "visium" else
-                            {
-                                "A": "A"
-                            }
-                        ),
-                        "spatialChannelWindow": (
-                            {
-                                "A": "A",
-                                "B": "B",
-                                "C": "C"
-                            }
-                            if spatial_type == "visium" else
-                            {
-                                "A": "A"
-                            }
-                        ),
-                        "spatialChannelVisible": (
-                            {
-                                "A": "A",
-                                "B": "B",
-                                "C": "C"
-                            }
-                            if spatial_type == "visium" else
-                            {
-                                "A": "A"
-                            }
-                        ),
-                        "spatialChannelOpacity": (
-                            {
-                                "A": "A",
-                                "B": "B",
-                                "C": "C"
-                            }
-                            if spatial_type == "visium" else
-                            {
-                                "A": "A"
-                            }
-                        )
+                        "spatialTargetC": _config_switch_spatial_type(spatial_type, "A"),
+                        "spatialChannelColor": _config_switch_spatial_type(spatial_type, "A"),
+                        "spatialChannelWindow": _config_switch_spatial_type(spatial_type, "A"),
+                        "spatialChannelVisible": _config_switch_spatial_type(spatial_type, "A"),
+                        "spatialChannelOpacity": _config_switch_spatial_type(spatial_type, "A")
                     }
                 },
                 "B": {
@@ -679,9 +662,11 @@ def format_vitessce_cell_types(
                             "B": "B"
                         },
                         "imageChannel": {
-                            "B": [
-                                "B"
-                            ]
+                            "B": (
+                                ["D", "E", "F"]
+                                if spatial_type == "visium"
+                                else ["B"]
+                            )
                         }
                     },
                     "spotLayer": {
@@ -702,61 +687,11 @@ def format_vitessce_cell_types(
                         }
                     },
                     "imageChannel": {
-                        "spatialTargetC": (
-                            {
-                                "D": "D",
-                                "E": "E",
-                                "F": "F",
-                            }
-                            if spatial_type == "visium" else
-                            {
-                                "B": "B"
-                            }
-                        ),
-                        "spatialChannelColor": (
-                            {
-                                "D": "D",
-                                "E": "E",
-                                "F": "F",
-                            }
-                            if spatial_type == "visium" else
-                            {
-                                "B": "B"
-                            }
-                        ),
-                        "spatialChannelWindow": (
-                            {
-                                "D": "D",
-                                "E": "E",
-                                "F": "F",
-                            }
-                            if spatial_type == "visium" else
-                            {
-                                "B": "B"
-                            }
-                        ),
-                        "spatialChannelVisible": (
-                            {
-                                "D": "D",
-                                "E": "E",
-                                "F": "F",
-                            }
-                            if spatial_type == "visium" else
-                            {
-                                "B": "B"
-                            }
-                        ),
-                        "spatialChannelOpacity": (
-                            {
-                                "D": "D",
-                                "E": "E",
-                                "F": "F",
-                            }
-                            if spatial_type == "visium" else
-                            {
-                                "B": "B"
-                            }
-                        )
+                        "spatialTargetC": _config_switch_spatial_type(spatial_type, "B"),
+                        "spatialChannelColor": _config_switch_spatial_type(spatial_type, "B"),
+                        "spatialChannelWindow": _config_switch_spatial_type(spatial_type, "B"),
+                        "spatialChannelVisible": _config_switch_spatial_type(spatial_type, "B"),
+                        "spatialChannelOpacity": _config_switch_spatial_type(spatial_type, "B")
                     }
                 }
             }

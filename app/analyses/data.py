@@ -1,6 +1,4 @@
-
 from app.cirro import list_datasets
-
 from typing import Dict
 from cirro.sdk.dataset import DataPortalDataset
 import pandas as pd
