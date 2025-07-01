@@ -1,5 +1,5 @@
 import io
-from typing import List
+from typing import List, Tuple
 from cirro import DataPortalDataset, DataPortalProject
 from matplotlib import pyplot as plt
 import seaborn as sns
@@ -213,18 +213,12 @@ def has_file_cached(project_id: str, dataset_id: str, file_path: str):
     ])
 
 
-def show_umap(
-    cluster_annot_df: pd.DataFrame,
-    neighborhood_annot_df: pd.DataFrame,
-    region_annot_df: pd.DataFrame
-):
-    linked_header("UMAP Embedding")
+def read_umap() -> Tuple[pd.DataFrame, pd.DataFrame]:
 
     # Check to see if the UMAP embedding has been computed
     umap_fp = "combined/spatialdata.umap.feather"
     if not has_file(umap_fp):
-        st.write("No UMAP coordinates found - please run the latest analysis version")
-        return
+        return None, None
 
     # Otherwise, read in the UMAP coordinates
     with st.spinner("Reading Data..."):
@@ -233,12 +227,31 @@ def show_umap(
     # Read in the annotations
     annot_fp = "combined/spatialdata.annotations.feather"
     if not has_file(annot_fp):
-        st.write("No cluster annotations found - please run the latest analysis version")
-        return
+        return umap, None
 
     # Otherwise, read in the annotations
     with st.spinner("Reading Data..."):
         annot = read_file(annot_fp, filetype="feather")
+
+    return umap, annot
+
+
+def show_umap(
+    umap: pd.DataFrame,
+    annot: pd.DataFrame,
+    cluster_annot_df: pd.DataFrame,
+    neighborhood_annot_df: pd.DataFrame,
+    region_annot_df: pd.DataFrame
+):
+    if umap is None:
+        st.write("No UMAP coordinates found - please run the latest analysis version")
+        return
+
+    if annot is None:
+        st.write("No cluster annotations found - please run the latest analysis version")
+        return
+
+    linked_header("UMAP Embedding")
 
     # Merge the tables
     umap = umap.merge(
@@ -761,8 +774,11 @@ def explore_analysis():
     # Let the user annotate / merge regions for analysis
     region_annot_df = get_annotations(counts, "region")
 
+    # Read the UMAP coordinates for the cells
+    umap, annot = read_umap()
+
     # Display the UMAP embedding
-    show_umap(cluster_annot_df, neighborhood_annot_df, region_annot_df)
+    show_umap(umap, annot, cluster_annot_df, neighborhood_annot_df, region_annot_df)
 
     # Display the marker abundances by cluster
     show_features_by_cluster()
