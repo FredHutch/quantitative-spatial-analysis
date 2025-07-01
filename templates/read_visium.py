@@ -178,7 +178,7 @@ def _format_image(
     assert len(image.shape) == 3, "Can only display three dimensions"
 
     # Set the channel names
-    channel_names = ["R", "B", "G"]
+    channel_names = ["R", "G", "B"]
 
     # Convert the image to multiscale and build an
     # image model which can be used in a SpatialData object
