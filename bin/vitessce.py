@@ -305,22 +305,22 @@ def write_vitessce_config(region: str, vt_kwargs: Dict[str, Any], spatial_type: 
 def _config_switch_spatial_type(spatial_type, value_group):
     if value_group == "A":
         if spatial_type == "visium":
-             return {
+            return {
                 "A": "A",
                 "B": "B",
                 "C": "C"
             }
         else:
-             return {"A": "A"}
+            return {"A": "A"}
     elif value_group == "B":
         if spatial_type == "visium":
-             return {
-                "D": "B",
+            return {
+                "D": "D",
                 "E": "E",
                 "F": "F"
             }
         else:
-             return {"B": "B"}
+            return {"B": "B"}
     else:
         raise ValueError(f"Unexpected value_group = {value_group}")
 
