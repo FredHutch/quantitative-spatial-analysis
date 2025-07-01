@@ -55,6 +55,7 @@ vitessce.py
 
 }
 
+
 workflow analyze_regions {
     take:
     regions
@@ -67,12 +68,26 @@ workflow analyze_regions {
         .map { region ->
             def obj = file(region.uri, checkIfExists: true)
             def json = new groovy.json.JsonSlurper().parseText(obj.text)
-            return [
-                json["dataset"]["uri"].replaceAll("s3:/", "s3://"),
-                json["dataset"]["type"],
-                [region.id, obj]
-            ]
+            // return ["foo": json]
+            if (json instanceof ArrayList){
+                // return ['foo': 'bar']
+                return json.collect {
+                    return [
+                        "uri": it["dataset"]["uri"].replaceAll("s3:/", "s3://"),
+                        "type": it["dataset"]["type"],
+                        "contents": [region.id, obj]
+                    ]
+                }
+            } else {
+                return [
+                    "uri": json["dataset"]["uri"].replaceAll("s3:/", "s3://"),
+                    "type": json["dataset"]["type"],
+                    "contents": [region.id, obj]
+                ]
+            }
         }
+        .flatten()
+        .map { it -> [it['uri'], it['type'], it['contents']]}
         // Group by the input dataset
         .groupTuple(by: [0, 1])
         // Branch based on the type of the dataset
