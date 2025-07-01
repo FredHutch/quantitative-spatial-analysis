@@ -1,4 +1,5 @@
 import io
+from typing import List
 from cirro import DataPortalDataset, DataPortalProject
 from matplotlib import pyplot as plt
 import seaborn as sns
@@ -212,7 +213,11 @@ def has_file_cached(project_id: str, dataset_id: str, file_path: str):
     ])
 
 
-def show_umap():
+def show_umap(
+    cluster_annot_df: pd.DataFrame,
+    neighborhood_annot_df: pd.DataFrame,
+    region_annot_df: pd.DataFrame
+):
     linked_header("UMAP Embedding")
 
     # Check to see if the UMAP embedding has been computed
@@ -237,9 +242,37 @@ def show_umap():
 
     # Merge the tables
     umap = umap.merge(
-        annot.reindex(columns=['cluster', 'neighborhood', 'region']),
+        (
+            annot
+            .reindex(columns=['cluster', 'neighborhood', 'region'])
+            .astype(str)
+        ),
         left_index=True,
         right_index=True
+    )
+    umap = (
+        umap
+        .merge(
+            cluster_annot_df.drop(columns=["Percent"]).assign(
+                cluster=lambda d: d["cluster"].astype(str)
+            ),
+            left_on="cluster",
+            right_on="cluster"
+        )
+        .merge(
+            neighborhood_annot_df.drop(columns=["Percent"]).assign(
+                neighborhood=lambda d: d["neighborhood"].astype(str)
+            ),
+            left_on="neighborhood",
+            right_on="neighborhood"
+        )
+        .merge(
+            region_annot_df.drop(columns=["Percent"]).assign(
+                region=lambda d: d["region"].astype(str)
+            ),
+            left_on="region",
+            right_on="region"
+        )
     )
 
     # Let the user filter out cells based on their cluster, neighborhood, or region
@@ -260,10 +293,10 @@ def show_umap():
     )
 
     # Filter the data
-    umap = umap[
-        umap["cluster"].isin(display_clusters) &
-        umap["neighborhood"].isin(display_neighborhoods) &
-        umap["region"].isin(display_regions)
+    umap = umap.loc[
+        umap["cluster"].isin(list(map(str, display_clusters))) &
+        umap["neighborhood"].isin(list(map(str, display_neighborhoods))) &
+        umap["region"].isin(list(map(str, display_regions)))
     ]
 
     # If there is no data left, stop here
@@ -359,6 +392,41 @@ def show_umap():
     st.download_button("Download PNG", data=plot_bytes, file_name="umap.png")
 
 
+def _calc_enr(means: pd.DataFrame):
+    """For each cluster, divide by the mean for all other clusters."""
+    means = (
+        means
+        .reset_index()
+        .query("level_1 == 'mean'")
+        .drop(columns=["level_1"])
+        .set_index("cluster")
+    )
+    return means / means.mean()
+
+
+def _calc_feature_order(enr: pd.DataFrame) -> List[str]:
+    all_features = list(enr.columns.values)
+    feature_order = []
+    while len(all_features) > 0:
+        if len(all_features) == 1:
+            ix = all_features[0]
+        elif len(feature_order) >= 200:
+            break
+        else:
+            ix = (
+                enr
+                .reindex(columns=all_features)
+                .iloc[len(all_features) % enr.shape[0]]
+                .idxmax()
+            )
+        if pd.isnull(ix):
+            break
+        feature_order.append(ix)
+        all_features.remove(ix)
+    feature_order = feature_order + list(set(all_features) - set(feature_order))
+    return feature_order
+
+
 def show_features_by_cluster():
     linked_header("Compare Features Across Clusters")
 
@@ -368,18 +436,17 @@ def show_features_by_cluster():
         st.write("No feature summary table found -- please run the latest analysis version")
         return
 
-    # Otherwise, read in the table
+    # Otherwise, read in the mean abundances from the table
     with st.spinner("Reading Data..."):
         metrics = read_file(metrics_fp, filetype="csv", index_col=[0, 1])
 
-    # For every feature, calculate the ratio of the std across clusters vs. the mean std within clusters
-    feature_spread = pd.Series({
-        feature: (
-            dat.loc[(slice(None), 'mean')].std() /
-            dat.loc[(slice(None), 'std')].mean()
-        )
-        for feature, dat in metrics.items()
-    }).sort_values(ascending=False)
+    # For each feature and cluster, compare the mean abundance vs. the mean for that feature across all other clusters
+    logger.info("Calculating enrichment scores per feature/cluster")
+    enr = _calc_enr(metrics)
+
+    # Order the features to select those with the most cluster-specific abundance
+    logger.info("Finding predictive features")
+    feature_order = _calc_feature_order(enr)
 
     # Let the user decide what clusters to show, defaulting to all of them
     all_clusters = metrics.reset_index()['cluster'].unique()
@@ -393,8 +460,8 @@ def show_features_by_cluster():
     # Let the user decide what features to show, defaulting to the top 30
     selected_features = st.multiselect(
         label="Show Features:",
-        options=feature_spread.index.values,
-        default=feature_spread.head(30).index.values
+        options=feature_order,
+        default=feature_order[:30]
     )
 
     # If none were selected, stop here
@@ -562,7 +629,11 @@ def new_category_name(annot_df: pd.DataFrame) -> str:
     return f"Category {i}"
 
 
-def read_spatial(cluster_annot_df: pd.DataFrame, neighborhood_annot_df: pd.DataFrame) -> AnnData:
+def read_spatial(
+    cluster_annot_df: pd.DataFrame,
+    neighborhood_annot_df: pd.DataFrame,
+    region_annot_df: pd.DataFrame
+) -> AnnData:
     """Read the spatial attributes as AnnData."""
 
     # Read the spatialdata object
@@ -580,6 +651,11 @@ def read_spatial(cluster_annot_df: pd.DataFrame, neighborhood_annot_df: pd.DataF
         adata.obsm["cell_annotations"] = adata.obsm["cell_annotations"].assign(**{
             annot_name: adata.obs["neighborhood"].apply(annot_values.get)
             for annot_name, annot_values in neighborhood_annot_df.astype(str).set_index("neighborhood").items()
+            if annot_name not in ['Percent']
+        })
+        adata.obsm["cell_annotations"] = adata.obsm["cell_annotations"].assign(**{
+            annot_name: adata.obs["region"].apply(annot_values.get)
+            for annot_name, annot_values in region_annot_df.astype(str).set_index("region").items()
             if annot_name not in ['Percent']
         })
 
@@ -673,12 +749,6 @@ def explore_analysis():
     Provide a set of displays summarizing the analysis results for the dataset.
     """
 
-    # Display the UMAP embedding
-    show_umap()
-
-    # Display the marker abundances by cluster
-    show_features_by_cluster()
-
     # Read the counts
     counts = read_file("combined/counts.csv", filetype="csv")
 
@@ -688,15 +758,29 @@ def explore_analysis():
     # Let the user annotate / merge neighborhoods for analysis
     neighborhood_annot_df = get_annotations(counts, "neighborhood")
 
+    # Let the user annotate / merge regions for analysis
+    region_annot_df = get_annotations(counts, "region")
+
+    # Display the UMAP embedding
+    show_umap(cluster_annot_df, neighborhood_annot_df, region_annot_df)
+
+    # Display the marker abundances by cluster
+    show_features_by_cluster()
+
     # Show the user the spatial distribution of each cluster/neighborhood/annotation
-    adata = read_spatial(cluster_annot_df, neighborhood_annot_df)
+    adata = read_spatial(cluster_annot_df, neighborhood_annot_df, region_annot_df)
     show_spatial(adata)
 
     # Let the user perform numeric comparisons
-    compare_counts(counts, cluster_annot_df, neighborhood_annot_df)
+    compare_counts(counts, cluster_annot_df, neighborhood_annot_df, region_annot_df)
 
 
-def compare_counts(counts: pd.DataFrame, cluster_annot_df: pd.DataFrame, neighborhood_annot_df: pd.DataFrame):
+def compare_counts(
+    counts: pd.DataFrame,
+    cluster_annot_df: pd.DataFrame,
+    neighborhood_annot_df: pd.DataFrame,
+    region_annot_df: pd.DataFrame
+):
     linked_header("Compare Cell Counts")
 
     # Merge the counts with the annotations
@@ -721,6 +805,13 @@ def compare_counts(counts: pd.DataFrame, cluster_annot_df: pd.DataFrame, neighbo
             ),
             left_on="neighborhood",
             right_on="neighborhood"
+        )
+        .merge(
+            region_annot_df.drop(columns=["Percent"]).assign(
+                region=lambda d: d["region"].astype(str)
+            ),
+            left_on="region",
+            right_on="region"
         )
     )
 
