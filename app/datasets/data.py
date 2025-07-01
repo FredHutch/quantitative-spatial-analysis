@@ -211,11 +211,17 @@ class SpatialDataCatalog:
         ds = self.datasets[dataset_id]
 
         # List the files in the dataset which may contain points
-        files = ds.list_files()
-        files = files.filter_by_pattern("*/cells.parquet")
+        all_files = ds.list_files()
+        files = all_files.filter_by_pattern("*/cells.parquet")
 
         # Only keep the file names
         files = [file.name for file in files]
+
+        # If there are any that end with "/outs/cells.parquet", then just keep those
+        outs_suffix = "/outs/cells.parquet"
+        files_outs = [fn for fn in files if fn.endswith(outs_suffix)]
+        if len(files_outs) > 0:
+            files = files_outs
 
         # If there is more than one, ask the user which one to select
         if len(files) > 1:
@@ -231,6 +237,14 @@ class SpatialDataCatalog:
                 raise ValueError(f"Missing column {cname} in {file}")
         coords = coords.set_index("cell_id").reindex(columns=["x_centroid", "y_centroid", "transcript_counts"])
 
+        # Check to see if there are clusters
+        clusters_fp = file.replace("cells.parquet", "analysis/clustering/gene_expression_graphclust/clusters.csv")
+        clusters_file = [fn for fn in all_files if fn.name == clusters_fp]
+        if clusters_file:
+            clusters = clusters_file[0].read_csv(index_col=0).iloc[:, 0].reindex(index=coords.index)
+        else:
+            clusters = None
+
         # Get the folder which contains the complete Xenium dataset (within the Cirro dataset)
         folder = str(Path(file).parent)
 
@@ -239,7 +253,7 @@ class SpatialDataCatalog:
 
         return SpatialPoints(
             coords=coords,
-            clusters=None,
+            clusters=clusters,
             xcol="x_centroid",
             ycol="y_centroid",
             meta_cols=["transcript_counts"],
