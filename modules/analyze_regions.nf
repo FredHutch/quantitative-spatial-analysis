@@ -1,6 +1,20 @@
 include { extract_regions } from './extract_regions'
 include { summarize } from './summarize'
 
+process parse_regions {
+    input:
+    tuple val(region_id), path("input.region.json")
+
+    output:
+    path "region.*.json"
+
+    script:
+    """#!/bin/bash
+set -e
+parse_regions.py "${region_id}"
+    """
+}
+
 process cluster_points {
     publishDir "${params.outdir}", mode: 'copy', overwrite: true, pattern: "**.txt"
     publishDir "${params.outdir}/combined", mode: 'copy', overwrite: true, pattern: "cluster_feature_metrics.csv"
@@ -62,31 +76,23 @@ workflow analyze_regions {
 
     main:
 
+    // Parse each region file, to account for the case when a single JSON file
+    // contains multiple regions (e.g. TMA cores)
+    parse_regions(regions)
+
     // Parse each region file as JSON and extract
     // the URI of the data file it references, as well as the type
-    regions
-        .map { region ->
-            def obj = file(region.uri, checkIfExists: true)
-            def json = new groovy.json.JsonSlurper().parseText(obj.text)
-            // return ["foo": json]
-            if (json instanceof ArrayList){
-                // return ['foo': 'bar']
-                return json.collect {
-                    return [
-                        "uri": it["dataset"]["uri"].replaceAll("s3:/", "s3://"),
-                        "type": it["dataset"]["type"],
-                        "contents": [region.id, obj]
-                    ]
-                }
-            } else {
-                return [
-                    "uri": json["dataset"]["uri"].replaceAll("s3:/", "s3://"),
-                    "type": json["dataset"]["type"],
-                    "contents": [region.id, obj]
-                ]
-            }
-        }
+    parse_regions
+        .out
         .flatten()
+        .map { obj ->
+            def json = new groovy.json.JsonSlurper().parseText(obj.text)
+            return [
+                "uri": json["dataset"]["uri"].replaceAll("s3:/", "s3://"),
+                "type": json["dataset"]["type"],
+                "contents": [json["region_id"], obj]
+            ]
+        }
         .map { it -> [it['uri'], it['type'], it['contents']]}
         // Group by the input dataset
         .groupTuple(by: [0, 1])
