@@ -204,11 +204,7 @@ def save_tma_cores(points: SpatialPoints, name: str, cores: pd.DataFrame):
     # Make a single object that has all of the regions
     regions = [
         region
-        for region in _tma_cores_to_spatial_region(
-            cores,
-            dataset=points.dataset,
-            name_prefix=name,
-        )
+        for region in _tma_cores_to_spatial_region(cores, dataset=points.dataset)
     ]
 
     save_region_json(
@@ -218,12 +214,7 @@ def save_tma_cores(points: SpatialPoints, name: str, cores: pd.DataFrame):
     )
 
 
-def _tma_cores_to_spatial_region(
-    cores: pd.DataFrame,
-    dataset: CirroDataset,
-    name_prefix: str,
-    n_points=100
-) -> Iterable[SpatialRegion]:
+def _tma_cores_to_spatial_region(cores: pd.DataFrame, dataset: CirroDataset) -> Iterable[SpatialRegion]:
 
     for _, core in cores.iterrows():
 
@@ -232,24 +223,13 @@ def _tma_cores_to_spatial_region(
                 dict(
                     xref="x",
                     yref="y",
-                    x=[
-                        core['x'] + (core['radius'] * math.cos(_calc_angle(i, n_points)))
-                        for i in range(n_points)
-                    ],
-                    y=[
-                        core['y'] + (core['radius'] * math.sin(_calc_angle(i, n_points)))
-                        for i in range(n_points)
-                    ]
+                    x=core["shape"][:, 0].tolist(),
+                    y=core["shape"][:, 1].tolist(),
                 )
             ],
             dataset=dataset,
             region_id=core["name"]
         )
-
-
-@lru_cache
-def _calc_angle(i, n):
-    return 2 * math.pi * i / n
 
 
 def save_region(
