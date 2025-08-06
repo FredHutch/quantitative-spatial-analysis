@@ -12,4 +12,4 @@ EXPOSE 8000
 # Start the app
 CMD ["uv", "run", "streamlit", "run", "app.py", "--server.headless", "true", "--server.port=8000", "--server.address=0.0.0.0"]
 
-# Trigger the build for 2025-07-01 2:15pm PT
+# Trigger the build for 2025-08-06
