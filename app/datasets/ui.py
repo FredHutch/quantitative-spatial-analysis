@@ -325,20 +325,29 @@ def select_tma_cores(points: SpatialPoints, width: int, height: int):
         )
         # Add a circle for every core
         for _, core in cores.iterrows():
-            fig.add_shape(
-                type="circle",
-                xref="x",
-                yref="y",
-                x0=core['x'] - core['radius'],
-                x1=core['x'] + core['radius'],
-                y0=core['y'] - core['radius'],
-                y1=core['y'] + core['radius'],
-                label=dict(
-                    text=core["name"],
-                    xanchor="center",
-                    yanchor="middle",
-                    font=dict(color="black")
-                )
+            shape = pd.DataFrame(core["shape"], columns=["x", "y"])
+            fig.add_scatter(
+                x=shape["x"],
+                y=shape["y"],
+                mode="lines",
+                fill="toself",
+                fillcolor="rgba(0, 0, 255, 0.2)",
+                line=dict(color="blue", width=1),
+                name=core["name"],
+                showlegend=False,
+                hovertemplate=f"<b>{core['name']}</b><br>" +
+                              f"Cells: {core['n']:,}<br>" +
+                              f"Row: {core['row_i'] + 1}<br>" +
+                              f"Column: {core['col_i'] + 1}<extra></extra>"
+            )
+            fig.add_annotation(
+                x=shape['x'].mean(),
+                y=shape['y'].mean(),
+                text=core["name"],
+                showarrow=False,
+                font=dict(color="black"),
+                xanchor="center",
+                yanchor="middle"
             )
 
         # Optionally invert the axes
