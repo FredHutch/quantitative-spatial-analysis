@@ -297,7 +297,7 @@ def select_tma_cores(points: SpatialPoints, width: int, height: int):
         value=0.1,
         max_value=100.,
         min_value=0.,
-        step=0.1
+        step=0.001
     ) / 100.
     with st.spinner("Finding TMA Cores"):
         cores = find_tma_cores(points, angle, min_prop_cells=min_prop_cells)

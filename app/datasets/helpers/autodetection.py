@@ -225,7 +225,7 @@ def _find_cores(
     y_grid: list,
     min_prop_cells=0.001,
     minor_grid_scale=20,
-    n_iter=5
+    n_iter=50
 ) -> pd.DataFrame:
     """
     Find the individual cores.
@@ -246,8 +246,8 @@ def _find_cores(
             row_i=row_i,
             id=f"core_{col_i}_{row_i}",
         )
-        for col_i, x in enumerate(x_grid)
-        for row_i, y in enumerate(y_grid)
+        for row_i, x in enumerate(x_grid)
+        for col_i, y in enumerate(y_grid)
     ]).set_index("id")
 
     # Find the median distance beween the major grid lines
@@ -454,22 +454,30 @@ def name_tma_cores(
     if not rows_are_letters:
         if core_naming_scheme != "Column=Letter; Row=Number":
             raise ValueError(f"Unexpected core naming scheme: {core_naming_scheme}")
+    assert row_start in ["Top", "Bottom"], "row_start must be 'Top' or 'Bottom'"
+    assert col_start in ["Left", "Right"], "col_start must be 'Left'' or 'Right'"
 
     row_map = _make_index_map(
         cores['row_i'],
         row_start == "Bottom",
-        rows_are_letters
+        not rows_are_letters
     )
+    print(row_map)
 
     col_map = _make_index_map(
         cores['col_i'],
         col_start == "Left",
-        not rows_are_letters
+        rows_are_letters
     )
+    print(col_map)
 
     return cores.assign(
         name=cores.apply(
-            lambda r: f"{row_map[r['row_i']]}{col_map[r['col_i']]}",
+            lambda r: (
+                f"{row_map[r['row_i']]}{col_map[r['col_i']]}"
+                if rows_are_letters
+                else f"{col_map[r['col_i']]}{row_map[r['row_i']]}"
+            ),
             axis=1
         )
     )
@@ -487,8 +495,7 @@ def _make_index_map(vals: pd.Series, ascending: bool, are_letters: bool):
         ),
         (
             ascii_uppercase
-            if are_letters
+            if not are_letters
             else range(1, 1+vals.shape[0])
         )
     ))
-
