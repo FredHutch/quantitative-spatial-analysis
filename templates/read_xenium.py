@@ -144,7 +144,7 @@ def format_spatial(
 
 
 def _read_image(experiment) -> da.Array:
-    for key in ["morphology_focus_filepath", "morphology_filepath"]:
+    for key in ["morphology_filepath", "morphology_focus_filepath"]:
         if key in experiment["images"]:
             image_fp = "xenium/" + experiment["images"][key]
             break
