@@ -174,8 +174,20 @@ def _format_image(
     min_px=1000,
     chunk_x=1000,
     chunk_y=1000,
-    chunk_c=1    
+    chunk_c=1
 ) -> MultiscaleSpatialImage:
+    
+    # If the image is three dimensions, pick the shortest dimension and compute the maximum
+    # value along that dimension
+    if len(image.shape) == 3:
+        logger.info(f"Image has three dimensions, shape: {image.shape}. Computing maximum projection")
+        # Pick the shortest dimension
+        shortest_dim = image.shape.index(min(image.shape))
+        logger.info(f"Shortest dimension is {shortest_dim} with size {image.shape[shortest_dim]}")
+        # Compute the maximum projection along that dimension
+        logger.info("Computing maximum projection along the shortest dimension")
+        image = da.max(image, axis=shortest_dim)
+
     # The array must be two dimensions
     assert len(image.shape) == 2, "Image must be two dimensions"
 
