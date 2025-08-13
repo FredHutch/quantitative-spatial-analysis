@@ -42,23 +42,63 @@ def _rotate_cores(cores: dict, angle: float):
         )[:, :2]
 
 
-def _find_grid(vals: pd.Series, max_n=16, min_n=2):
-    """Use k-means clustering to find the points with maximal density."""
+def guess_tma_grid(points: SpatialPoints, angle: float = 0.0, subsample_n=100000):
+    # Rotate the points if requested
+    coords = _rotate_points(
+        points.coords.rename(
+            columns={
+                points.xcol: "x",
+                points.ycol: "y"
+            }
+        ),
+        angle=angle
+    )
 
-    # Test different numbers of grid lines
+    ncols = _guess_n(coords["x"].sample(subsample_n))
+    nrows = _guess_n(coords["y"].sample(subsample_n))
+    return nrows, ncols
+
+
+def _guess_n(vals: pd.Series, max_n=16, min_n=2):
+    """Use k-means clustering to guess the number of rows/columns."""
+    # Use k-means clustering to find the number of rows/columns
     k_stats = {
         k: _run_gaussian_mixture(vals, k)
-        for k in range(min_n, max_n+1)
+        for k in range(min_n, max_n + 1)
     }
 
     # Pick the top value of k
-    best_model, best_score = None, None
+    best_score = None
+    best_n = None
 
-    for model, score in k_stats.values():
+    for n, (model, score) in k_stats.items():
         if best_score is None or score > best_score:
-            best_model, best_score = model, score
+            best_score, best_n = score, n
 
-    return np.sort(best_model.means_[:, 0])
+    return best_n
+
+
+def _find_grid(vals: pd.Series, n: int):
+    """Use k-means clustering to find the points with maximal density."""
+
+    # Run the mixture model
+    model, _ = _run_gaussian_mixture(vals, n)
+
+    # Get the coordinates of the grid lines
+    grid = np.sort(model.means_[:, 0])
+
+    # Find the median distance between the grid lines
+    dists = np.diff(grid, n=1)
+    median_dist = np.median(dists)
+
+    # If there are any points which are > 1.5X the median distance,
+    # add a point in between them
+    for i in range(1, len(grid)):
+        if dists[i - 1] > 1.5 * median_dist:
+            new_point = (grid[i - 1] + grid[i]) / 2
+            grid = np.insert(grid, i, new_point)
+
+    return grid
 
 
 def _run_gaussian_mixture(vals: pd.Series, k: int):
@@ -416,6 +456,8 @@ def _draw_hull(core_coords: pd.DataFrame):
 def find_tma_cores(
     points: SpatialPoints,
     angle: float,
+    nrows: int = None,
+    ncols: int = None,
     subsample_n=10000,
     min_prop_cells=0.001
 ):
@@ -432,8 +474,8 @@ def find_tma_cores(
     )
 
     # Pick the grid lines for each axis
-    x_grid = _find_grid(coords["x"].sample(subsample_n))
-    y_grid = _find_grid(coords["y"].sample(subsample_n))
+    x_grid = _find_grid(coords["x"].sample(subsample_n), ncols)
+    y_grid = _find_grid(coords["y"].sample(subsample_n), nrows)
 
     cores = _find_cores(coords, x_grid, y_grid, min_prop_cells=min_prop_cells)
 

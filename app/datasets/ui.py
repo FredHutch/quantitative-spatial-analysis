@@ -8,7 +8,7 @@ import plotly.express as px
 from app import html
 from app.cirro import save_region, pick_dataset, save_tma_cores
 from app.datasets.data import get_catalog, SpatialDataCatalog
-from app.datasets.helpers.autodetection import find_tma_cores, name_tma_cores
+from app.datasets.helpers.autodetection import find_tma_cores, name_tma_cores, guess_tma_grid
 from app.models.points import SpatialPoints, SpatialRegion
 from app.streamlit import set_query_param, clear_query_param, get_query_param
 import logging
@@ -294,13 +294,40 @@ def select_tma_cores(points: SpatialPoints, width: int, height: int):
     )
     min_prop_cells = st.number_input(
         "Minimum Fraction of Cells per TMA (%)",
-        value=0.1,
+        value=0.01,
         max_value=100.,
         min_value=0.,
         step=0.001
     ) / 100.
+
+    # Try to guess the numbers of rows and columns
+    with st.spinner("Detecting TMA Grid..."):
+        guessed_nrows, guessed_ncols = guess_tma_grid(points, angle)
+
+    # Let the user modify the guessed number of rows and columns
+    nrows = st.number_input(
+        "Number of Rows",
+        value=guessed_nrows,
+        min_value=1,
+        max_value=100,
+        step=1
+    )
+    ncols = st.number_input(
+        "Number of Columns",
+        value=guessed_ncols,
+        min_value=1,
+        max_value=100,
+        step=1
+    )
+
     with st.spinner("Finding TMA Cores"):
-        cores = find_tma_cores(points, angle, min_prop_cells=min_prop_cells)
+        cores = find_tma_cores(
+            points,
+            angle,
+            nrows=nrows,
+            ncols=ncols,
+            min_prop_cells=min_prop_cells
+        )
 
     # Let the user pick the naming scheme
     core_naming_scheme = st.selectbox(
