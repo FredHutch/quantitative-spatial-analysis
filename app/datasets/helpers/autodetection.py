@@ -91,10 +91,10 @@ def _find_grid(vals: pd.Series, n: int):
     dists = np.diff(grid, n=1)
     median_dist = np.median(dists)
 
-    # If there are any points which are > 1.5X the median distance,
+    # If there are any points which are > 1.75X the median distance,
     # add a point in between them
     for i in range(1, len(grid)):
-        if dists[i - 1] > 1.5 * median_dist:
+        if dists[i - 1] > 1.75 * median_dist:
             new_point = (grid[i - 1] + grid[i]) / 2
             grid = np.insert(grid, i, new_point)
 

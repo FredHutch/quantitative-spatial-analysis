@@ -288,7 +288,7 @@ def select_tma_cores(points: SpatialPoints, width: int, height: int):
 
     # Let the user manually rotate the plot
     angle = st.number_input(
-        label="Rotate Dataset",
+        label="Rotate Dataset (degrees clockwise)",
         step=1,
         value=0
     )
