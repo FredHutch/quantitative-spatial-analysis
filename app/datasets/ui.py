@@ -176,11 +176,16 @@ def dataset_buttons(catalog: SpatialDataCatalog, dataset_id: str):
 
     # Images: Run StarDist / Cellpose
     if process_id == "images":
-        html.cirro_analysis_button("Run Segmentation (StarDist)", dataset_id, "process-hutch-qupath-stardist-1_0")
+        html.cirro_analysis_button("Run Segmentation (StarDist)", dataset_id, "process-cirro-qupath-stardist-1_0")
         html.cirro_analysis_button("Run Segmentation (Cellpose)", dataset_id, "process-hutch-cellpose-1_0")
 
     # StarDist / Cellpose / Proseg: Pick Region
-    elif process_id in ["process-hutch-qupath-stardist-1_0", "process-hutch-cellpose-1_0", "proseg-resegment-1-0"]:
+    elif process_id in [
+        "process-hutch-qupath-stardist-1_0",
+        "process-cirro-qupath-stardist-1_0",
+        "process-hutch-cellpose-1_0",
+        "proseg-resegment-1-0"
+    ]:
         if st.button("Pick Region", key=f"pick-regions-{dataset_id}"):
             set_query_param("pick_region", dataset_id)
             st.rerun()

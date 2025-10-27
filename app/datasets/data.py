@@ -40,6 +40,7 @@ class SpatialDataCatalog:
         "xenium",
         "ingest_spaceranger",  # Visium
         "process-hutch-qupath-stardist-1_0",
+        "process-cirro-qupath-stardist-1_0",
         "process-hutch-cellpose-1_0",
         "proseg-resegment-1-0"
     ]
@@ -131,7 +132,7 @@ class SpatialDataCatalog:
                 yield dataset.id
 
     def add_dataset(self, dataset: DataPortalDataset):
-
+        
         # Parse region datasets in a particular way
         if dataset.process_id == "spatial_region_json":
             region = parse_region(dataset)
@@ -198,6 +199,7 @@ class SpatialDataCatalog:
 
         elif process_id in [
             "process-hutch-qupath-stardist-1_0",
+            "process-cirro-qupath-stardist-1_0",
             "process-hutch-cellpose-1_0"
         ]:
             return self.get_points_stardist(dataset_id)
