@@ -349,7 +349,7 @@ def show_umap(
     # Let the user decide which annotations to show
     color = cols_b[0].selectbox(
         "Color By:",
-        options=["cluster", "neighborhood", "region"],
+        options=[_cn for _cn in umap.columns.values if _cn not in ["UMAP 1", "UMAP 2"]],
         index=0
     )
 

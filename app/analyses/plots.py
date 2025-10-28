@@ -135,8 +135,10 @@ def plot_bars(counts: pd.DataFrame):
         labels={
             cname: cname.title()
             for cname in df.columns.values
+        },
+        category_orders={
+            selected_x: df[selected_x].sort_values()
         }
-
     )
 
     _show_image_and_download_button(fig)
