@@ -458,7 +458,7 @@ def find_tma_cores(
     angle: float,
     nrows: int = None,
     ncols: int = None,
-    subsample_n=10000,
+    subsample_n=100000,
     min_prop_cells=0.001
 ):
 
