@@ -392,14 +392,20 @@ class SpatialDataCatalog:
         )
 
         # Get the automated clusters
-        clusters = (
-            ds
-            .list_files()
-            .get_by_name("data/cell_clustering/leiden_clusters.csv")
-            .read_csv(index_col=0)
-            ["leiden"]
-            .astype(str)
-        )
+        if any([
+            f.name == "data/cell_clustering/leiden_clusters.csv"
+            for f in ds.list_files()
+        ]):
+            clusters = (
+                ds
+                .list_files()
+                .get_by_name("data/cell_clustering/leiden_clusters.csv")
+                .read_csv(index_col=0)
+                ["leiden"]
+                .astype(str)
+            )
+        else:
+            clusters = pd.Series(['none' for _ in range(coords.shape[0])], index=coords.index)
         # Construct the URI for the folder
         folder = "data"
         folder_uri = str(Path(ds._get_detail().s3) / folder)
