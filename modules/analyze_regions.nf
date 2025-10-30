@@ -59,7 +59,7 @@ process vitessce {
 
     output:
     path "logs/*", emit: logs
-    path "regions/**", emit: zarr
+    path "regions/**", emit: zarr, optional: true
 
     script:
     """#!/bin/bash
@@ -128,7 +128,7 @@ workflow analyze_regions {
     vitessce(
         neighborhood_analysis.out.anndata.toSortedList(),
         extract_regions.out.spatialdata
-            .map { it[1] }
+            .map { it -> it[1] }
             .toSortedList()
     )
 
