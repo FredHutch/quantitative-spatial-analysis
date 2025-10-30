@@ -196,9 +196,9 @@ workflow extract_regions_stardist {
     // Get the spatialdata which is already formatted nicely in the stardist outputs
     source_datasets
         .map {
-            return [
+            it -> [
                 it[0],
-                file(it[0] + "/dashboard/spatialdata.zarr.zip", checkIfExists: true)
+                file(it[0] + "/dashboard/spatialdata.zarr.zip")
             ]
         }
         // Convert the datasets to AnnData (h5ad) format
