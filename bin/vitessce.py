@@ -41,7 +41,7 @@ def main():
         .uns
         .get("spatial_dataset", {})
     )
-    logger.info(f"spatial_dataset:")
+    logger.info("spatial_dataset:")
     for line in json.dumps(spatial_dataset, indent=4).splitlines():
         logger.info(line)
 
@@ -62,7 +62,7 @@ def read_spatial_datasets() -> Iterator[SpatialData]:
         yield read_spatialdata_zarr(path)
         n += 1
     if n == 0:
-        raise ValueError("No spatial datasets found in spatialdata/*.zarr.zip")
+        logger.info("No spatial datasets found in spatialdata/*.zarr.zip")
     logger.info(f"Read {n} spatial datasets from spatialdata/*.zarr.zip")
 
 
