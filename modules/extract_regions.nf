@@ -194,11 +194,14 @@ workflow extract_regions_stardist {
         | subset_region
 
     // Get the spatialdata which is already formatted nicely in the stardist outputs
+    // Only use those inputs if the --use_dashboards param is true
     source_datasets
         .map {
             it -> [
                 it[0],
-                file(it[0] + "/dashboard/spatialdata.zarr.zip")
+                file(
+                    "${params.use_dashboards}" == "true" ? it[0] + "/dashboard/spatialdata.zarr.zip" : "none"
+                )
             ]
         }
         // Convert the datasets to AnnData (h5ad) format
