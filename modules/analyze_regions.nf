@@ -129,6 +129,7 @@ workflow analyze_regions {
         neighborhood_analysis.out.anndata.toSortedList(),
         extract_regions.out.spatialdata
             .map { it -> it[1] }
+            .filter { it -> it.exists() }
             .toSortedList()
     )
 
