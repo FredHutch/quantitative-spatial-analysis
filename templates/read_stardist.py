@@ -18,56 +18,6 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-def robust_scale(vals: pd.Series):
-    """
-    Scale the values in a Series using the interquartile range.
-    """
-    return (vals - vals.median()) / (vals.quantile(0.75) - vals.quantile(0.25))
-
-
-def scale_intensities(
-    df: pd.DataFrame,
-    scaling: str,
-    clip_lower: float,
-    clip_upper: float
-) -> pd.DataFrame:
-    """
-    Scale the intensities of the data in a DataFrame.
-
-    Parameters
-    ----------
-    df : pd.DataFrame
-        The DataFrame containing the data to scale.
-    scaling : str
-        The scaling method to use. One of "robust", "zscore", "minmax", or "none".
-    clip_lower : float
-        The lower bound to clip the data to.
-    clip_upper : float
-        The upper bound to clip the data to.
-
-    Returns
-    -------
-    pd.DataFrame
-        The scaled data.
-    """
-
-    if scaling == "robust":
-        logger.info("Scaling data using the robust method")
-        df = df.apply(robust_scale)
-    elif scaling == "zscore":
-        logger.info("Scaling data using the Z-score method")
-        df = df.apply(lambda col: (col - col.mean()) / col.std())
-    elif scaling == "minmax":
-        logger.info("Scaling data using the Min-Max method")
-        df = df.apply(lambda col: (col - col.min()) / (col.max() - col.min()))
-    elif scaling == "none":
-        logger.info("No scaling applied")
-    else:
-        raise ValueError(f"Unknown scaling method: {scaling}")
-
-    return df.clip(lower=clip_lower, upper=clip_upper)
-
-
 def format_anndata() -> AnnData:
     # Read the cell coordinates from spatial.csv
     logger.info("Reading the cell coordinates")
@@ -90,16 +40,6 @@ def format_anndata() -> AnnData:
 
     # Apply the index from obs to X
     X.index = obs.index
-
-    # Scale the data as needed
-    logger.info("Scaling the data")
-    logger.info("scaling=${params.scaling}, clip_lower=${params.clip_lower}, clip_upper=${params.clip_upper}")
-    X = scale_intensities(
-        X,
-        scaling="${params.scaling}",
-        clip_lower=float("${params.clip_lower}"),
-        clip_upper=float("${params.clip_upper}")
-    )
 
     # Drop any columns which have NaN values
     logger.info("Dropping columns with NaN values")

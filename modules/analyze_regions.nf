@@ -15,6 +15,18 @@ parse_regions.py "${region_id}"
     """
 }
 
+process integrate_measurements_scvi {
+    input:
+    path "spatialdata.h5ad"
+
+    output:
+    path "integrated_spatialdata.h5ad", emit: anndata
+    path "logs/*", emit: logs
+
+    script:
+    template "integrate_measurements_scvi.py"
+}
+
 process cluster_points {
     publishDir "${params.outdir}", mode: 'copy', overwrite: true, pattern: "**.txt"
     publishDir "${params.outdir}/combined", mode: 'copy', overwrite: true, pattern: "cluster_feature_metrics.csv"
@@ -115,8 +127,28 @@ workflow analyze_regions {
         source_datasets.stardist
     )
 
+    // If the user has not selected a method for integration
+    if ( "${params.integrate_measurements}" == "none" ) {
+
+        anndata = extract_regions.out.anndata
+        integrate_measurements_logs = Channel.empty()
+
+    } else if ( "${params.integrate_measurements}" == "scvi" ) {
+
+        // Integrate measurements across all regions
+        integrate_measurements_scvi(extract_regions.out.anndata)
+        anndata = integrate_measurements_scvi.out.anndata
+        integrate_measurements_logs = integrate_measurements_scvi.out.logs
+
+    } else {
+
+        error "Option not supported: integrate_measurements=${params.integrate_measurements}"
+
+    }
+
+
     // Run clustering on the extracted points
-    cluster_points(extract_regions.out.anndata)
+    cluster_points(anndata)
 
     // Run neighborhood analysis on the clustered points
     neighborhood_analysis(cluster_points.out.anndata)
@@ -143,5 +175,6 @@ workflow analyze_regions {
         .mix(cluster_points.out.logs)
         .mix(neighborhood_analysis.out.logs)
         .mix(vitessce.out.logs)
+        .mix(integrate_measurements_logs)
 
 }
