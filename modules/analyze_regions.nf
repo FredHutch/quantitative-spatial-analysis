@@ -15,7 +15,7 @@ parse_regions.py "${region_id}"
     """
 }
 
-process integrate_measurements {
+process integrate_measurements_scvi {
     input:
     path "spatialdata.h5ad"
 
@@ -24,7 +24,7 @@ process integrate_measurements {
     path "logs/*", emit: logs
 
     script:
-    template "integrate_measurements.py"
+    template "integrate_measurements_scvi.py"
 }
 
 process cluster_points {
@@ -127,11 +127,26 @@ workflow analyze_regions {
         source_datasets.stardist
     )
 
-    // Integrate measurements across all regions
-    integrate_measurements(extract_regions.out.anndata)
+    // If the user has not selected a method for integration
+    if ( "${params.integrate_measurements}" == "none" ) {
+
+        anndata = extract_regions.out.anndata
+
+    } else if ( "${params.integrate_measurements}" == "scvi" ) {
+
+        // Integrate measurements across all regions
+        integrate_measurements_scvi(extract_regions.out.anndata)
+        anndata = integrate_measurements_scvi.out.anndata
+
+    } else {
+
+        error "Option not supported: integrate_measurements=${params.integrate_measurements}"
+
+    }
+
 
     // Run clustering on the extracted points
-    cluster_points(integrate_measurements.out.anndata)
+    cluster_points(anndata)
 
     // Run neighborhood analysis on the clustered points
     neighborhood_analysis(cluster_points.out.anndata)
