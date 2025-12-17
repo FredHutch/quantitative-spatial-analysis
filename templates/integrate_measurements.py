@@ -33,7 +33,7 @@ def integrate_measurements(adata: ad.AnnData) -> ad.AnnData:
     Use scvi-tools to integrate measurements across all regions
     """
     logger.info("Setting up AnnData object for SCVI")
-    scvi.model.SCVI.setup_anndata(adata, layer="X", batch_key="region")
+    scvi.model.SCVI.setup_anndata(adata, batch_key="region")
     logger.info("Creating the SCVI model")
     model = scvi.model.SCVI(adata, n_layers=2, n_latent=30, gene_likelihood="nb")
     logger.info("Traiing the SCVI model")
