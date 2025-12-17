@@ -4,6 +4,8 @@
 Use scvi-tools to integrate measurements across all regions
 """
 
+import scvi
+import torch
 import anndata as ad
 import logging
 from pathlib import Path
@@ -19,6 +21,11 @@ logging.basicConfig(
     ]
 )
 logger = logging.getLogger(__name__)
+
+scvi.settings.seed = 0
+logger.info("Last run with scvi-tools version:", scvi.__version__)
+
+torch.set_float32_matmul_precision("high")
 
 
 def integrate_measurements(adata: ad.AnnData) -> ad.AnnData:
