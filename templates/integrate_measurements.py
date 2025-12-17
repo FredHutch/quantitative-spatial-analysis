@@ -1,0 +1,50 @@
+#!/usr/bin/env python3
+
+"""
+Use scvi-tools to integrate measurements across all regions
+"""
+
+import anndata as ad
+import logging
+from pathlib import Path
+
+Path("logs").mkdir(exist_ok=True)
+
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.StreamHandler(),
+        logging.FileHandler("logs/integrate_measurements.txt")
+    ]
+)
+logger = logging.getLogger(__name__)
+
+
+def integrate_measurements(adata: ad.AnnData) -> ad.AnnData:
+    """
+    Use scvi-tools to integrate measurements across all regions
+    """
+    scvi.model.SCVI.setup_anndata(adata, layer="X", batch_key="region")
+    model = scvi.model.SCVI(adata, n_layers=2, n_latent=30, gene_likelihood="nb")
+    model.train()
+    adata.X = model.get_normalized_expression()
+    return adata
+
+
+def main():
+    logger.info("Reading spatial data")
+    adata = ad.read_h5ad("spatialdata.h5ad")
+    logger.info(f"Spatial data has {adata.shape[0]:,} observations and {adata.shape[1]:,} variables")
+
+    logger.info("Integrating measurements")
+    integrated_adata = integrate_measurements(adata)
+    logger.info(f"Integrated data has {integrated_adata.shape[0]:,} observations and {integrated_adata.shape[1]:,} variables")
+
+    logger.info("Writing integrated data")
+    integrated_adata.write("integrated_spatialdata.h5ad")
+    logger.info("Done")
+
+
+if __name__ == "__main__":
+    main()

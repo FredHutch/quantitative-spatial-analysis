@@ -15,6 +15,18 @@ parse_regions.py "${region_id}"
     """
 }
 
+process integrate_measurements {
+    input:
+    path "spatialdata.h5ad"
+
+    output:
+    path "integrated_spatialdata.h5ad", emit: anndata
+    path "logs/*", emit: logs
+
+    script:
+    template "integrate_measurements.py"
+}
+
 process cluster_points {
     publishDir "${params.outdir}", mode: 'copy', overwrite: true, pattern: "**.txt"
     publishDir "${params.outdir}/combined", mode: 'copy', overwrite: true, pattern: "cluster_feature_metrics.csv"
@@ -115,8 +127,11 @@ workflow analyze_regions {
         source_datasets.stardist
     )
 
+    // Integrate measurements across all regions
+    integrate_measurements(extract_regions.out.anndata)
+
     // Run clustering on the extracted points
-    cluster_points(extract_regions.out.anndata)
+    cluster_points(integrate_measurements.out.anndata)
 
     // Run neighborhood analysis on the clustered points
     neighborhood_analysis(cluster_points.out.anndata)
@@ -143,5 +158,6 @@ workflow analyze_regions {
         .mix(cluster_points.out.logs)
         .mix(neighborhood_analysis.out.logs)
         .mix(vitessce.out.logs)
+        .mix(integrate_measurements.out.logs)
 
 }
