@@ -131,12 +131,14 @@ workflow analyze_regions {
     if ( "${params.integrate_measurements}" == "none" ) {
 
         anndata = extract_regions.out.anndata
+        integrate_measurements_logs = Channel.empty()
 
     } else if ( "${params.integrate_measurements}" == "scvi" ) {
 
         // Integrate measurements across all regions
         integrate_measurements_scvi(extract_regions.out.anndata)
         anndata = integrate_measurements_scvi.out.anndata
+        integrate_measurements_logs = integrate_measurements.out.logs
 
     } else {
 
@@ -173,6 +175,6 @@ workflow analyze_regions {
         .mix(cluster_points.out.logs)
         .mix(neighborhood_analysis.out.logs)
         .mix(vitessce.out.logs)
-        .mix(integrate_measurements.out.logs)
+        .mix(integrate_measurements_logs)
 
 }
