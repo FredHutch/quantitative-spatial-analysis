@@ -138,7 +138,7 @@ workflow analyze_regions {
         // Integrate measurements across all regions
         integrate_measurements_scvi(extract_regions.out.anndata)
         anndata = integrate_measurements_scvi.out.anndata
-        integrate_measurements_logs = integrate_measurements.out.logs
+        integrate_measurements_logs = integrate_measurements_scvi.out.logs
 
     } else {
 
