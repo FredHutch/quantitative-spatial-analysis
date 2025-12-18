@@ -136,8 +136,13 @@ def normalize_measurements(adata: AnnData) -> AnnData:
     """
 
     filtered_adata = filter_features(adata)
-    scaled_data = scale_data(filtered_adata)
-    return scaled_data
+    # If no integration was performed
+    if "${params.integrate_measurements}" == "none":
+        # Perform z-score normalization
+        return scale_data(filtered_adata)
+    # Otherwise, no need to rescacle
+    else:
+        return filtered_adata
 
 
 def main():
